@@ -4,7 +4,7 @@ hold_stuff
 A couple of scripts to help us more quickly move things out of our temporary holding area and into our patron's hands. Results are available from a local server.
 
 ### make-treemap.py 
-Generates a treemap based on summaries from items that are probably in each section of the hold. Run by a cronjob each week. 
+Generates a treemap based on item counts. Run by a cronjob each week. 
 
 ### hold.py 
 Generates reports to help our catalogers quickly identify items in the hold with member copy -- the low-hanging fruit for quick cataloging and, therefore, even greater customer satisfaction. The main idea is that designated staff can download the relevant report at will, print it out, and head to the hold with the picklist, pencil, and a cart (we're not at the mobile device stage yet).
@@ -17,6 +17,7 @@ We're searching the following holds, based on language groups:
 * Turkish (tur)
 
 What hold.py does for each hold...
+
 1. Query Voyager for items that are most likely to be in the given hold (we have no single identifier to let us know this). The query logic is below. 
 2. Ping the [WorldCat Search API](http://www.oclc.org/developer/develop/web-services/worldcat-search-api.en.html) using ISBNs (a cache is checked first to be sure we're not abusing the service).
 3. Output a csv file with data from Voyager and WorldCat to serve as a downloadable picklist.
