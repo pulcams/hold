@@ -47,6 +47,7 @@ What we're checking in the MARCXML returned from WorldCat...
 * 090 - shelf location
 * 600, 610, 611, 65[^3] - subjects
 
+#### structure
 The main scripts are above, but the full working structure is like this (a few directories need to be created):
 ```
 hold
@@ -71,7 +72,8 @@ hold
 ├── logs
 └── make-treemap.py
 
-*These dirs are from Jim Vallandingham's source code: http://flowingdata.com/2014/10/15/linked-small-multiples/
+*These dirs are from Jim Vallandingham's source code: 
+http://flowingdata.com/2014/10/15/linked-small-multiples/
 ```
 
 ### requirements
