@@ -1,0 +1,15 @@
+[vger]
+user=
+pw=
+ip=
+sid=
+port=
+
+[local]
+temp=
+csv=
+html=
+summaries=
+
+[wc]
+wskey=
