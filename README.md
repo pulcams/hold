@@ -47,6 +47,33 @@ What we're checking in the MARCXML returned from WorldCat...
 * 090 - shelf location
 * 600, 610, 611, 65[^3] - subjects
 
+The main scripts are above, but the full working structure is like this (a few directories need to be created):
+```
+hold
+├── config
+│   └── hold.cfg
+├── db
+│   └── cache.db
+├── hold.py
+├── html
+│   └── hold
+│       ├── coffee*
+│       ├── css*
+│       ├── data
+│       ├── images
+│       ├── index.html
+│       ├── js*
+│       ├── multiples.html
+│       ├── reports.html
+│       ├── stacked.html
+│       ├── summaries
+│       └── treemap.html
+├── logs
+└── make-treemap.py
+
+*These dirs are from Jim Vallandingham's source code: http://flowingdata.com/2014/10/15/linked-small-multiples/
+```
+
 ### requirements
 * [cx_Oracle](http://cx-oracle.sourceforge.net/) 
 * [requests](http://docs.python-requests.org/en/latest/user/install/)
