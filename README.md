@@ -47,7 +47,7 @@ What we're checking in the MARCXML returned from WorldCat...
 * 090 - shelf location
 * 600, 610, 611, 65[^3] - subjects
 
-#### structure
+### full structure
 The main scripts are above, but the full working structure is like this (a few directories need to be created):
 ```
 hold
