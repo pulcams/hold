@@ -4,7 +4,7 @@ hold_stuff
 A couple of scripts to help us more quickly move things out of our temporary holding area and into our patron's hands. Results are available from a local server.
 
 ### make-treemap.py 
-Generates a treemap based on item counts. Run by a cronjob each week. 
+Generates a treemap based on item counts. Run by a cronjob each week (reminder: use only absolute paths when running with crontab). 
 
 ### hold.py 
 Generates reports to help our catalogers quickly identify items in the hold with member copy -- the low-hanging fruit for quick cataloging and, therefore, even greater customer satisfaction. The main idea is that designated staff can download the relevant report at will, print it out, and head to the hold with the picklist, pencil, and a cart (we're not at the mobile device stage yet).
