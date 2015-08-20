@@ -34,18 +34,20 @@ from lxml import etree
 
 # config
 config = ConfigParser.RawConfigParser()
-config.read('./config/hold.cfg') # <= production
+config.read('/var/www/hold/config/hold.cfg') # <= production
 #config.read('./config/hold_local.cfg') # <= local for debugging
 USER = config.get('vger', 'user')
 PASS = config.get('vger', 'pw')
 PORT = config.get('vger', 'port')
 SID = config.get('vger', 'sid')
 HOST = config.get('vger', 'ip')
-SHELF_FILE = './db/cache.db'
+SHELF_FILE = '/var/www/hold/db/cache.db'
 
-TEMPFILE =config.get('local', 'temp') # out.csv
+TEMPFILE = config.get('local', 'temp')
+TEMPFILE += 'out.csv'
 CSVOUT = config.get('local', 'csv') # data from each hold's report
 HTMLOUT = config.get('local', 'html') # reports.html
+LOG = config.get('local', 'log')
 SUMMARIES = config.get('local', 'summaries') # summary counts (and data for sparklines)
 
 today = time.strftime('%Y%m%d') # name log files
@@ -75,7 +77,7 @@ def main(hold, query=None, ping=None,  firstitem=0, lastitem=0):
 	"""
 	the engine with, a little function chain
 	"""
-	logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',filename='logs/'+today+'.log',level=logging.INFO)
+	logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',filename=LOG+today+'.log',level=logging.INFO)
 	# the following disables the default logging of requests.get()
 	requests_log = logging.getLogger("requests")
 	requests_log.addHandler(logging.NullHandler())
@@ -114,7 +116,6 @@ def query_vger(hold, firstitem=0, lastitem=0):
 	elif hold == 'latin_american':
 		langs = "'spa','por','cat'"
 		#place = ", TRIM(REGEXP_REPLACE(BIB_TEXT.PUB_PLACE,':\s+\z','')) as PUB_PLACE"
-		# TODO Vendor info
 		place = ", SUBSTR(princetondb.GETALLBIBTAG(BIB_TEXT.BIB_ID,'008'),16,3) as PUB_PLACE"
 		vendor = ", VENDOR.VENDOR_CODE"
 		isbn = ""
@@ -248,7 +249,7 @@ def ping_worldcat(hold):
 				times = [1.25,1.5,1.75, 2]
 				randomsnooze = random.choice(times)
 				r = requests.get("http://www.worldcat.org/webservices/catalog/content/isbn/"+isbn+"?servicelevel=full&wskey="+wskey)
-				print("http://www.worldcat.org/webservices/catalog/content/isbn/"+isbn+"?servicelevel=full&wskey="+wskey)
+				# print("http://www.worldcat.org/webservices/catalog/content/isbn/"+isbn+"?servicelevel=full&wskey="+wskey)
 				if r.status_code == 200:
 					tree = etree.fromstring(r.content)
 					
@@ -282,7 +283,7 @@ def ping_worldcat(hold):
 			if ismember == True:
 				guess = 'member'
 				
-			# stuff into cache...
+			# stuff data into cache...
 			record = Item()
 			record.value = itemid
 			record.lang = lang
@@ -294,8 +295,8 @@ def ping_worldcat(hold):
 			record.date = today
 			shelf[itemid] = record
 			
-			# write results of query to the new csv
-			row = (vlang, itemid, bibid, isbn, guess, oclcnum, elvi, lit, ti, loc, created)
+			# write results of query to the new csv. NOTE: the ="" is to get around Excel's number formatting issues.
+			row = (vlang, itemid, bibid, '="'+isbn+'"', guess, '="'+oclcnum+'"', elvi, lit, ti, loc, created)
 			if hold == 'latin_american': 
 				# extra fields for latin_american
 				r = list(row)
@@ -499,6 +500,6 @@ if __name__ == "__main__":
 	
 	holds = ['roman', 'latin_american', 'arabic', 'turkish', 'cyrillic']
 	
-	#for h in holds:
-	main('arabic', query, ping)
+	for h in holds:
+		main(h, query=True, ping=True)
 
