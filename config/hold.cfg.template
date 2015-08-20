@@ -10,6 +10,7 @@ temp=
 csv=
 html=
 summaries=
+log=
 
 [wc]
 wskey=
