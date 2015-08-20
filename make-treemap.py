@@ -14,20 +14,21 @@ import time
 import cx_Oracle
 
 config = ConfigParser.RawConfigParser()
-config.read('./config/hold.cfg') # <= "production"
+config.read('/var/www/hold/config/hold.cfg') # <= "production"
 #config.read('./config/hold_local.cfg') # <= local
 user = config.get('vger', 'user')
 pw = config.get('vger', 'pw')
 port = config.get('vger', 'port')
 sid = config.get('vger', 'sid')
 ip = config.get('vger', 'ip')
-csvout = config.get('local', 'csv')
+tempout = config.get('local', 'temp')
 htmlout = config.get('local', 'html')
 
 dsn_tns = cx_Oracle.makedsn(ip,port,sid)
 db = cx_Oracle.connect(user,pw,dsn_tns)
 
-justnow = time.strftime("%m/%d/%Y %I:%M %p")
+#justnow = time.strftime("%m/%d/%Y %I:%M %p")
+justnow = time.strftime("%m/%d/%Y")
 today = time.strftime("%Y%m%d")
 
 def main():
@@ -63,7 +64,7 @@ GROUP BY  BIB_TEXT.LANGUAGE"""
 	
 	c = db.cursor()
 	c.execute(q)
-	with open(csvout+'output_'+today+'.csv','wb+') as outfile:
+	with open(tempout+'output_'+today+'.csv','wb+') as outfile:
 		writer = csv.writer(outfile)
 		header = ['lang','total','max904','min904','mincre','today','max_age_in_days']
 		writer.writerow(header) 
@@ -75,7 +76,7 @@ def make_html():
 	"""
 	make treemap.html
 	"""
-	reader = csv.reader(open(csvout+'output_'+today+'.csv'))
+	reader = csv.reader(open(tempout+'output_'+today+'.csv'))
 	htmlfile = open(htmlout+'treemap.html','wb+')
 	rownum = 0
 	header = """<!DOCTYPE html>\n<html>
@@ -117,7 +118,7 @@ def make_html():
           </div><!--/.nav-collapse -->
         </div><!--/.container-fluid -->
       </nav>
-      <p style="margin-left:60px;">An educated guess about the number of items in the hold this week, based on language groups. Last updated """+justnow+""".</p>
+      <p style="margin-left:60px;">An educated guess about the number of items in the hold on <strong>"""+justnow+"""</strong>, based on language groups.</p>
     </div>
 	<div id="viz" class="container" style="width:60%;height:600px;"></div>
 	<script>
@@ -131,7 +132,7 @@ def make_html():
     .container("#viz")
     .data(hold_data)
     .type("tree_map")
-    .id(["group","name"])
+    .id(["group","lang"])
     .size("value")
     .font("serif")
     .color("oldest")
@@ -140,12 +141,10 @@ def make_html():
     .ui([
        {
         "method" : "depth",
-        "type": "drop",
         "value"  : [{"by language": 1}, {"by hold": 0}]
       },
       {
         "method" : "color",
-        "type": "drop",
         "value"  : [{"by hold": "group"}, {"by max age": "oldest"}]
       }
     ])
@@ -171,9 +170,9 @@ def make_html():
 			group = 'Roman'
 			
 		if rownum == 1:
-			htmlfile.write('{"value":%s,"name": "%s", "group": "%s","oldest":%s}' % (count,lang,group,age))
+			htmlfile.write('{"value":%s,"lang":"%s","group":"%s","oldest":%s}' % (count,lang,group,age))
 		elif rownum > 1:
-			htmlfile.write(',\n{"value":%s,"name": "%s", "group": "%s","oldest":%s}' % (count,lang,group,age))
+			htmlfile.write(',\n{"value":%s,"lang":"%s","group":"%s","oldest":%s}' % (count,lang,group,age))
 		rownum += 1
 	htmlfile.write(footer)
 
