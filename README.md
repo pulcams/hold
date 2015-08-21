@@ -1,7 +1,9 @@
 hold
 ====
 
-A couple of scripts to help us more quickly move things out of our temporary holding area and into our patron's hands. Results are available from a local server.
+##Under Construction...
+
+A couple of scripts to help us more quickly move things out of our temporary holding area (a.k.a "The Hold" or "the holds") and into our patron's hands. Results are available from a local server.
 
 ### make-treemap.py 
 Generates a treemap based on item counts, for quick analysis. Run by a cronjob each week. 
