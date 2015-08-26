@@ -433,7 +433,7 @@ def make_html():
 	<p><a href="./data/roman.csv">Roman</a> <span id="spark_roman"></span></p>
 	<p><a href="./data/turkish.csv">Turkish</a> <span id="spark_tur"></span></p>
 	<p><a href="https://docs.google.com/a/princeton.edu/forms/d/18SPb-XvSLPRxt5O2XIW4qhJpFivg9v_84wmu6B1RNUw/viewform" target="_BLANK">Custom report</a> (Google sign-in)</p>
-	<sub>Sparklines (<span id="spark_sample"></span>) indicate trends in these reports since 8/14/15. For the bigger picture, look under Stats.</sub>
+	<sub>Sparklines (<span id="spark_sample"></span>) indicate trends in these reports since 8/26/15. For the bigger picture, look under Stats.</sub>
 	</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
 <script>
@@ -511,5 +511,5 @@ if __name__ == "__main__":
 	# loop through all holds
 	holds = ['roman', 'latin_american', 'arabic', 'turkish', 'cyrillic']
 	for h in holds:
-		main("arabic", query=True, ping=True)
+		main(h, query=True, ping=True)
 
