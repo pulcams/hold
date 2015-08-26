@@ -6,7 +6,8 @@ hold.py
 Generate reports to facilitate getting stuff out of the holds.
 Run like `python hold.py -qp`
 Do `python hold.py -h` for (sparse) details.
-from 20150819
+NOTE: use absolute paths when running with crontab, relative paths won't work
+from 20150826
 pmg
 """
 
@@ -24,25 +25,24 @@ import time
 from datetime import date, datetime, timedelta
 from lxml import etree
 
-#TODO
-# fix log output (remove 'requests' output)
-
 #TODO?
+# no items for tur
 # Generate PDFs?
 # jinja?
 # add the 'confirm' items from member copy policy?
 
 # config
 config = ConfigParser.RawConfigParser()
-config.read('/var/www/hold/config/hold.cfg') # <= production
 #config.read('./config/hold_local.cfg') # <= local for debugging
+config.read('/var/www/hold/config/hold.cfg') # <= production
+
 USER = config.get('vger', 'user')
 PASS = config.get('vger', 'pw')
 PORT = config.get('vger', 'port')
 SID = config.get('vger', 'sid')
 HOST = config.get('vger', 'ip')
-SHELF_FILE = '/var/www/hold/db/cache.db'
 
+SHELF_FILE =  config.get('local', 'shelf')
 TEMPFILE = config.get('local', 'temp')
 TEMPFILE += 'out.csv'
 CSVOUT = config.get('local', 'csv') # data from each hold's report
@@ -77,11 +77,12 @@ def main(hold, query=None, ping=None,  firstitem=0, lastitem=0):
 	"""
 	the engine with, a little function chain
 	"""
+
 	logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',filename=LOG+today+'.log',level=logging.INFO)
-	# the following disables the default logging of requests.get()
-	requests_log = logging.getLogger("requests")
-	requests_log.addHandler(logging.NullHandler())
-	requests_log.propagate = False
+	
+	# the following two lines disable the default logging of requests.get()
+	logging.getLogger("requests").setLevel(logging.WARNING)
+	logging.getLogger("urllib3").setLevel(logging.WARNING)
 		
 	logging.info('START ' + '-' * 20)
 	logging.info('hold: '+ hold)
@@ -179,6 +180,7 @@ def ping_worldcat(hold):
 	wskey = config.get('wc','wskey')
 	ismember = False
 	NS = {'marcxml':'http://www.loc.gov/MARC21/slim'}
+	DIAGNS = {'diag':'http://www.loc.gov/zing/srw/diagnostic'}
 	shelf = shelve.open(SHELF_FILE, protocol=pickle.HIGHEST_PROTOCOL)
 	datediff = 0
 
@@ -186,15 +188,16 @@ def ping_worldcat(hold):
 		reader = csv.reader(indata,delimiter=',', quotechar='"')
 		firstline = reader.next()
 		
-		guess = 'not found in oclc'
-		isbn = 'none'
+		guess = ''
+		isbn = ''
 		elvi = ''
 		lang = ''
 		oclcnum = ''
 		lit = ''
-		field050 = ''
-		field090 = ''
-		field6xx = ''
+		field042 = ''
+		field050 = False
+		field090 = False
+		field6xx = False
 		
 		# output a new csv file
 		header = ['lang', 'item_id', 'bib_id', 'isbn', 'guess', 'oclc num', 'elvi', 'lit','title','loc','item created']
@@ -237,30 +240,32 @@ def ping_worldcat(hold):
 				date2 = datetime.strptime(today,'%Y%m%d')
 				date1 = datetime.strptime(cached.date,'%Y%m%d')
 				datediff = abs((date2 - date1).days)
-			
 			# check cache -- don't ping worldcat unless we have to
-			if cached is not None and datediff <= 30: # if it's been checked within the past month, get data from cache
+			if cached is not None and datediff <= 30: # if it's been checked within the past month, get data from cache, don't bother the worldcat folks
 				elvi = cached.elvi
 				lit = cached.lit
 				lang = cached.lang
 				oclcnum = cached.oclcnum
 				ismember = cached.member
-			elif isbn is not None and isbn != '':
+			elif isbn is not None and isbn != '' and isbn !=':':
+			#if isbn is not None and isbn != '' and isbn !=':': # <= for debugging
 				times = [1.25,1.5,1.75, 2]
 				randomsnooze = random.choice(times)
 				r = requests.get("http://www.worldcat.org/webservices/catalog/content/isbn/"+isbn+"?servicelevel=full&wskey="+wskey)
-				# print("http://www.worldcat.org/webservices/catalog/content/isbn/"+isbn+"?servicelevel=full&wskey="+wskey)
+				print("http://www.worldcat.org/webservices/catalog/content/isbn/"+isbn+"?servicelevel=full&wskey="+wskey)
 				if r.status_code == 200:
 					tree = etree.fromstring(r.content)
-					
-					if not tree.xpath("/diagnostics"): # ...because when a record isn't found, the response code is still 200
+					# NOTE: etree doesn't support XPath > 1.0 (!)
+					if not tree.xpath("/diagnostics/text()"): # ...because when a record isn't found, the response code is still 200
 						ldr = tree.xpath("//marcxml:leader/text()",namespaces=NS)
 						field008 = tree.xpath("//marcxml:controlfield[@tag='008']/text()",namespaces=NS)
 						field001 = tree.xpath("//marcxml:controlfield[@tag='001']/text()",namespaces=NS)
-						field050 = tree.xpath("//marcxml:datafield[@tag='050'][@ind1=' ' or @ind1=''][@ind2=' ' or @ind2='']/marcxml:subfield/@code='a'",namespaces=NS) # 050_ _ - LC call number
+						#field050 = tree.xpath("//marcxml:datafield[@tag='050'][@ind1=' ' or @ind1='' or @ind1='0'][@ind2=' ' or @ind2='' or @ind2='0']/marcxml:subfield/@code='a'",namespaces=NS) # 050_ _ - LC call number
+						field050 = tree.xpath("//marcxml:datafield/@tag='050'",namespaces=NS) # 050 - simply tests for existence of 050, if we need to test for LC copy, see the commented-out line above
 						field042 = tree.xpath("//marcxml:datafield[@tag='042']/text()",namespaces=NS) # 042$a - authentication code
 						field090 = tree.xpath("//marcxml:datafield/@tag='090'",namespaces=NS) # 090 - shelf location
-						field6xx = tree.xpath("//marcxml:datafield/@tag='600' or @tag='610' or @tag='611' or (starts-with(@tag,'65') and not(@tag='653'))",namespaces=NS) #600, 610, 611, 65[^3] - subjects
+						field6xx = tree.xpath("//marcxml:datafield/@tag[starts-with(.,'6')]",namespaces=NS) #600, 610, 611, 65[^3] - subjects
+						field6xx = any(x in ['600', '610', '611','650','651','654','655','656','677','658'] for x in field6xx)
 						elvi = ldr[0][17:18]
 						lit = field008[0][34:35]
 						lang = field008[0][35:38]
@@ -273,16 +278,19 @@ def ping_worldcat(hold):
 						#field250
 						#field260/264
 						
-						if ((field050 == True or field090 == True) and ((field6xx == True or (lit != '0' or lit != ' ')))):
+						if (field050 == True or field090 == True) and (field6xx == True or (lit != '0' or lit != ' ')):
 							ismember = True
+							guess = 'member'
 						else:
-							guess = 'in oclc but not member'
+							ismember = False
+							guess = 'in oclc but not member %s %s %s %s' % (field050, field090, field6xx, lit) 
+					else:
+						guess = 'not found in oclc'
 							
 				time.sleep(randomsnooze) # naps are healthy
-				
-			if ismember == True:
-				guess = 'member'
-				
+			else:
+				isbn = 'none'
+							
 			# stuff data into cache...
 			record = Item()
 			record.value = itemid
@@ -311,9 +319,11 @@ def ping_worldcat(hold):
 			else: 
 				# ...for all other holds, just report likely member copy...
 				if ismember == True:
-					with open(outfile,'ab+') as out:
-						writer = csv.writer(out)
-						writer.writerow(row)
+					# ...and for Arabic, just certain encoding levels...
+					if ((hold != 'arabic') or (hold == 'arabic' and elvi in ['I','L','4',' '])):
+						with open(outfile,'ab+') as out:
+							writer = csv.writer(out)
+							writer.writerow(row)
 				
 	shelf.close()
 
@@ -414,7 +424,7 @@ def make_html():
         </div><!--/.container-fluid -->
       </nav>
       
-	<p>Low-hanging fruit, ripe for the picking. Freshness date: %s.</p>""" % justnow
+	<p><img src='images/apple-web.jpg' alt='fresh apple' width="25px" height="40px" style="margin-right:10px;"/> Low-hanging fruit, ripe for the picking. Freshness date: %s.</p>""" % justnow
 	
 	body += """
 	<p><a href="./data/arabic.csv">Arabic</a> <span id="spark_ara"></span></p>
@@ -498,8 +508,8 @@ if __name__ == "__main__":
 	query = args['query']
 	ping = args['ping']
 	
+	# loop through all holds
 	holds = ['roman', 'latin_american', 'arabic', 'turkish', 'cyrillic']
-	
 	for h in holds:
-		main(h, query=True, ping=True)
+		main("arabic", query=True, ping=True)
 
