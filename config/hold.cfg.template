@@ -11,7 +11,7 @@ csv=
 html=
 summaries=
 log=
-shelf=
+db=
 
 [wc]
 wskey=
