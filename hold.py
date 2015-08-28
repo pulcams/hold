@@ -17,6 +17,7 @@ import csv
 import cx_Oracle
 import logging
 import random
+import re
 import requests
 import sqlite3 as lite
 import time
@@ -48,7 +49,7 @@ HTMLOUT = config.get('local', 'html') # reports.html
 LOG = config.get('local', 'log')
 SUMMARIES = config.get('local', 'summaries') # summary counts (and data for sparklines)
 
-maxage = 30 # number of days after which to re-check an item
+maxage = 0 # number of days after which to re-check an item
 today = time.strftime('%Y%m%d') # name log files
 todaydb = time.strftime('%Y-%m-%d') # date to check against db
 justnow = time.strftime("%m/%d/%Y") # freshness date of reports
@@ -255,7 +256,7 @@ def ping_worldcat(hold):
 			# check cache -- don't ping worldcat unless we have to
 			if cached_date is None or datediff >= maxage:
 			#if isbn is not None and isbn != '' and isbn !=':': # <= for debugging
-				if isbn is not None and isbn != '' and isbn !=':':
+				if isbn is not None and isbn != '' and not re.search('[a-zA-Z:]',isbn): # sometimes text has been mistakenly entered into 020$a
 					times = [1.5,2,2.25,2.5,3]
 					randomsnooze = random.choice(times)
 					r = requests.get("http://www.worldcat.org/webservices/catalog/content/isbn/"+isbn+"?servicelevel=full&wskey="+wskey)
@@ -336,7 +337,7 @@ def ping_worldcat(hold):
 						writer.writerow(row)
 			else: 
 				# ...for all other holds, just report likely member copy...
-				if ismember == True:
+				if guess == 'member':
 					# ...and for Arabic, just certain encoding levels...
 					if ((hold != 'arabic') or (hold == 'arabic' and elvi in ['I','L','4',' '])):
 						with open(outfile,'ab+') as out:
@@ -359,7 +360,7 @@ def write_summaries(hold):
 	with open(SUMMARIES+hold+'.csv','ab+') as sums:
 		reader = csv.reader(sums) 
 		writer = csv.writer(sums)
-		newrow = [today, str(row_count),hold]
+		newrow = [today, str(row_count-1),hold]
 		for line in reader:
 			if line == newrow:
 				found = True
@@ -528,6 +529,6 @@ if __name__ == "__main__":
 	# loop through all holds
 	holds = ['roman', 'latin_american', 'arabic', 'turkish', 'cyrillic']
 	
-	#for h in holds:
-	main('turkish', query=True, ping=True)
+	for h in holds:
+		main(h, query, ping)
 
