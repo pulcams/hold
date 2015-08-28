@@ -45,9 +45,25 @@ What we're checking in the MARCXML returned from WorldCat...
 * 008/33 - literary form
 * 001 - OCLC number
 * 042$a - authentication code
-* 050_ _ - LC call number
+* <strike>050_ _ - LC call number</strike> - just checking for existence of 050
 * 090 - shelf location
 * 600, 610, 611, 65[^3] - subjects
+
+#### caching
+cache.db is a sqlite database. A simple way to (re)create it (on Ubuntu)...
+```
+cd db
+sqlite3 cache.db
+sqlite> .tables
+sqlite> CREATE TABLE items(item_id INT PRIMARY KEY, lang TEXT, guess TEXT, isbn TEXT, elvi TEXT, lit TEXT, oclcnum TEXT, date DATE);
+```
+To drop (delete) it:
+```
+DROP TABLE IF EXISTS items;
+```
+To exit sqlite commandline interface type `.exit`
+
+cache.db needs write permissions `-rw-rw--r--`
 
 ### full structure
 The main scripts are above, but the full working structure is like this (a few directories need to be created):
