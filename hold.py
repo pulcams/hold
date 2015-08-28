@@ -16,11 +16,8 @@ import ConfigParser
 import csv
 import cx_Oracle
 import logging
-import pickle
 import random
-import re
 import requests
-import shelve
 import sqlite3 as lite
 import time
 from datetime import date, datetime, timedelta
