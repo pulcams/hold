@@ -21,15 +21,16 @@ import random
 import re
 import requests
 import shelve
+import sqlite3 as lite
 import time
 from datetime import date, datetime, timedelta
 from lxml import etree
 
 #TODO?
-# no items for tur
+# no items for tur?
 # Generate PDFs?
-# jinja?
-# add the 'confirm' items from member copy policy?
+# jinja for make_html?
+# add the 'confirm' items from member copy policy (245, 250, etc.)?
 
 # config
 config = ConfigParser.RawConfigParser()
@@ -42,7 +43,7 @@ PORT = config.get('vger', 'port')
 SID = config.get('vger', 'sid')
 HOST = config.get('vger', 'ip')
 
-SHELF_FILE =  config.get('local', 'shelf')
+DB_FILE =  config.get('local', 'db')
 TEMPFILE = config.get('local', 'temp')
 TEMPFILE += 'out.csv'
 CSVOUT = config.get('local', 'csv') # data from each hold's report
@@ -50,7 +51,9 @@ HTMLOUT = config.get('local', 'html') # reports.html
 LOG = config.get('local', 'log')
 SUMMARIES = config.get('local', 'summaries') # summary counts (and data for sparklines)
 
+maxage = 30 # number of days after which to re-check an item
 today = time.strftime('%Y%m%d') # name log files
+todaydb = time.strftime('%Y-%m-%d') # date to check against db
 justnow = time.strftime("%m/%d/%Y") # freshness date of reports
 
 class Item(object):
@@ -89,11 +92,12 @@ def main(hold, query=None, ping=None,  firstitem=0, lastitem=0):
 	
 	if query:
 		query_vger(hold, firstitem, lastitem)
-		write_summaries(hold)
-		
+
 	if ping:
 		ping_worldcat(hold)
-		
+
+	write_summaries(hold)
+
 	make_html()
 		
 	logging.info('-' * 23 + 'END')
@@ -181,7 +185,10 @@ def ping_worldcat(hold):
 	ismember = False
 	NS = {'marcxml':'http://www.loc.gov/MARC21/slim'}
 	DIAGNS = {'diag':'http://www.loc.gov/zing/srw/diagnostic'}
-	shelf = shelve.open(SHELF_FILE, protocol=pickle.HIGHEST_PROTOCOL)
+	
+	# sqllite connection
+	con = lite.connect(DB_FILE)
+	cached_date = None
 	datediff = 0
 
 	with open(TEMPFILE,'rb') as indata:
@@ -230,78 +237,92 @@ def ping_worldcat(hold):
 			except:
 				vendor = ''
 				
-			try:
-				cached = shelf[itemid]
-			except:
-				cached = None
-				
+			
+			with con:
+				con.row_factory = lite.Row
+				cur = con.cursor()
+				cur.execute("SELECT date FROM items WHERE item_id=?",(itemid,))
+				rows = cur.fetchall()
+				if len(rows) == 0:
+					cached_date = None
+				else:
+					for row in rows:
+						cached_date = row['date']
+			
 			# get number of days since bib was last checked
-			if cached is not None:
-				date2 = datetime.strptime(today,'%Y%m%d')
-				date1 = datetime.strptime(cached.date,'%Y%m%d')
+			if cached_date is not None:
+				date2 = datetime.strptime(todaydb,'%Y-%m-%d')
+				date1 = datetime.strptime(str(cached_date),'%Y-%m-%d')
 				datediff = abs((date2 - date1).days)
+				
 			# check cache -- don't ping worldcat unless we have to
-			if cached is not None and datediff <= 30: # if it's been checked within the past month, get data from cache, don't bother the worldcat folks
-				elvi = cached.elvi
-				lit = cached.lit
-				lang = cached.lang
-				oclcnum = cached.oclcnum
-				ismember = cached.member
-			elif isbn is not None and isbn != '' and isbn !=':':
+			if cached_date is None or datediff >= maxage:
 			#if isbn is not None and isbn != '' and isbn !=':': # <= for debugging
-				times = [1.25,1.5,1.75, 2]
-				randomsnooze = random.choice(times)
-				r = requests.get("http://www.worldcat.org/webservices/catalog/content/isbn/"+isbn+"?servicelevel=full&wskey="+wskey)
-				print("http://www.worldcat.org/webservices/catalog/content/isbn/"+isbn+"?servicelevel=full&wskey="+wskey)
-				if r.status_code == 200:
-					tree = etree.fromstring(r.content)
-					# NOTE: etree doesn't support XPath > 1.0 (!)
-					if not tree.xpath("/diagnostics/text()"): # ...because when a record isn't found, the response code is still 200
-						ldr = tree.xpath("//marcxml:leader/text()",namespaces=NS)
-						field008 = tree.xpath("//marcxml:controlfield[@tag='008']/text()",namespaces=NS)
-						field001 = tree.xpath("//marcxml:controlfield[@tag='001']/text()",namespaces=NS)
-						#field050 = tree.xpath("//marcxml:datafield[@tag='050'][@ind1=' ' or @ind1='' or @ind1='0'][@ind2=' ' or @ind2='' or @ind2='0']/marcxml:subfield/@code='a'",namespaces=NS) # 050_ _ - LC call number
-						field050 = tree.xpath("//marcxml:datafield/@tag='050'",namespaces=NS) # 050 - simply tests for existence of 050, if we need to test for LC copy, see the commented-out line above
-						field042 = tree.xpath("//marcxml:datafield[@tag='042']/text()",namespaces=NS) # 042$a - authentication code
-						field090 = tree.xpath("//marcxml:datafield/@tag='090'",namespaces=NS) # 090 - shelf location
-						field6xx = tree.xpath("//marcxml:datafield/@tag[starts-with(.,'6')]",namespaces=NS) #600, 610, 611, 65[^3] - subjects
-						field6xx = any(x in ['600', '610', '611','650','651','654','655','656','677','658'] for x in field6xx)
-						elvi = ldr[0][17:18]
-						lit = field008[0][34:35]
-						lang = field008[0][35:38]
-						oclcnum = field001[0]
-						# from member copy cat policy checklist, possibly include later...
-						#date = field008[0]
-						#place = field008[0]
-						#field300
-						#field245
-						#field250
-						#field260/264
-						
-						if (field050 == True or field090 == True) and (field6xx == True or (lit != '0' or lit != ' ')):
-							ismember = True
-							guess = 'member'
+				if isbn is not None and isbn != '' and isbn !=':':
+					times = [1.5,2,2.25,2.5,3]
+					randomsnooze = random.choice(times)
+					r = requests.get("http://www.worldcat.org/webservices/catalog/content/isbn/"+isbn+"?servicelevel=full&wskey="+wskey)
+					print("http://www.worldcat.org/webservices/catalog/content/isbn/"+isbn+"?servicelevel=full&wskey="+wskey)
+					
+					if r.status_code == 200:
+						tree = etree.fromstring(r.content)
+						# NOTE: etree doesn't support XPath > 1.0 (!)
+						if not tree.xpath("/diagnostics/text()"): # ...because when a record isn't found, the response code is still 200
+							ldr = tree.xpath("//marcxml:leader/text()",namespaces=NS)
+							field008 = tree.xpath("//marcxml:controlfield[@tag='008']/text()",namespaces=NS)
+							field001 = tree.xpath("//marcxml:controlfield[@tag='001']/text()",namespaces=NS)
+							#field050 = tree.xpath("//marcxml:datafield[@tag='050'][@ind1=' ' or @ind1='' or @ind1='0'][@ind2=' ' or @ind2='' or @ind2='0']/marcxml:subfield/@code='a'",namespaces=NS) # 050_ _ - LC call number
+							field050 = tree.xpath("//marcxml:datafield/@tag='050'",namespaces=NS) # 050 - simply tests for existence of 050, if we need to test for LC copy, see the commented-out line above
+							field042 = tree.xpath("//marcxml:datafield[@tag='042']/text()",namespaces=NS) # 042$a - authentication code
+							field090 = tree.xpath("//marcxml:datafield/@tag='090'",namespaces=NS) # 090 - shelf location
+							field6xx = tree.xpath("//marcxml:datafield/@tag[starts-with(.,'6')]",namespaces=NS) #600, 610, 611, 65[^3] - subjects
+							field6xx = any(x in ['600', '610', '611','650','651','654','655','656','677','658'] for x in field6xx)
+							elvi = ldr[0][17:18]
+							lit = field008[0][34:35]
+							lang = field008[0][35:38]
+							oclcnum = field001[0]
+							# from member copy cat policy checklist, possibly include later...
+							#date = field008[0]
+							#place = field008[0]
+							#field300
+							#field245
+							#field250
+							#field260/264
+							
+							if (field050 == True or field090 == True) and (field6xx == True or (lit != '0' or lit != ' ')):
+								ismember = True
+								guess = 'member'
+							else:
+								ismember = False
+								guess = 'in oclc but not member'
 						else:
-							ismember = False
-							guess = 'in oclc but not member %s %s %s %s' % (field050, field090, field6xx, lit) 
+							guess = 'not found in oclc'
+								
+					time.sleep(randomsnooze) # naps are healthy
+				else:
+					isbn = 'none'
+				# insert or update db
+				with con:
+					cur = con.cursor() 
+					if cached_date is None:
+						# insert new item into db
+						newitem = (itemid, lang, guess, isbn, elvi, lit, oclcnum, todaydb)
+						cur.executemany("INSERT INTO items VALUES(?, ?, ?, ?, ?, ?, ?, ?)", (newitem,))
 					else:
-						guess = 'not found in oclc'
-							
-				time.sleep(randomsnooze) # naps are healthy
-			else:
-				isbn = 'none'
-							
-			# stuff data into cache...
-			record = Item()
-			record.value = itemid
-			record.lang = lang
-			record.member = ismember
-			record.isbn = isbn
-			record.elvi = elvi
-			record.lit = lit
-			record.oclcnum = oclcnum
-			record.date = today
-			shelf[itemid] = record
+						# or, if it was in the cache for a while, update the item
+						updateitem = (lang, guess, isbn, elvi, lit, oclcnum, todaydb, itemid)
+						cur.executemany("UPDATE items SET lang=?, guess=?, isbn=?, elvi=?, lit=?, oclcnum=?, date=? WHERE item_id=?", (updateitem,))
+					
+			elif cached_date is not None and datediff < maxage:
+				# just get out existing fields for new csv file
+				cur.execute("SELECT * FROM items WHERE item_id=?",(itemid,))
+				rows = cur.fetchall()
+				for row in rows:
+					elvi = str(row['elvi'])
+					lit = str(row['lit'])
+					lang = str(row['lang'])
+					oclcnum = str(row['oclcnum'])
+					guess = str(row['guess'])
 			
 			# write results of query to the new csv. NOTE: the ="" is to get around Excel's number formatting issues.
 			row = (vlang, itemid, bibid, '="'+isbn+'"', guess, '="'+oclcnum+'"', elvi, lit, ti, loc, created)
@@ -324,15 +345,14 @@ def ping_worldcat(hold):
 						with open(outfile,'ab+') as out:
 							writer = csv.writer(out)
 							writer.writerow(row)
-				
-	shelf.close()
-
+	if con:
+		con.close()
+		
 
 def write_summaries(hold):
 	"""
 	Get count of lines in each report for sparklines
 	"""
-	# TODO: look into Jinja (etc.), this is hacky
 	header = ["Date","Count","Hold"]
 	found = False
 	with open(CSVOUT + hold + '.csv') as holdreport:
@@ -433,7 +453,7 @@ def make_html():
 	<p><a href="./data/roman.csv">Roman</a> <span id="spark_roman"></span></p>
 	<p><a href="./data/turkish.csv">Turkish</a> <span id="spark_tur"></span></p>
 	<p><a href="https://docs.google.com/a/princeton.edu/forms/d/18SPb-XvSLPRxt5O2XIW4qhJpFivg9v_84wmu6B1RNUw/viewform" target="_BLANK">Custom report</a> (Google sign-in)</p>
-	<sub>Sparklines (<span id="spark_sample"></span>) indicate trends in these reports since 8/26/15. For the bigger picture, look under Stats.</sub>
+	<sub>Sparklines (<span id="spark_sample"></span>) indicate trends in these reports since 09/01/15. For the bigger picture, look under Stats.</sub>
 	</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
 <script>
@@ -499,7 +519,7 @@ d3.csv('./summaries/sample.csv', function(error, data) {
 
 
 if __name__ == "__main__":
-	
+		
 	# parse cli args when running locally 
 	parser = argparse.ArgumentParser(description='Generate hold reports.')
 	parser.add_argument('-q','--query',dest="query",help="Query Voyager",required=False,action='store_true')
@@ -510,6 +530,7 @@ if __name__ == "__main__":
 	
 	# loop through all holds
 	holds = ['roman', 'latin_american', 'arabic', 'turkish', 'cyrillic']
-	for h in holds:
-		main(h, query=True, ping=True)
+	
+	#for h in holds:
+	main('turkish', query=True, ping=True)
 
