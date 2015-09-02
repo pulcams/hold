@@ -25,6 +25,7 @@ from datetime import date, datetime, timedelta
 from lxml import etree
 
 #TODO?
+# add BOM or UnicodeWriter for opening in Excel
 # no items for tur?
 # Generate PDFs?
 # jinja for make_html?
@@ -54,25 +55,25 @@ today = time.strftime('%Y%m%d') # name log files
 todaydb = time.strftime('%Y-%m-%d') # date to check against db
 justnow = time.strftime("%m/%d/%Y") # freshness date of reports
 
-class Item(object):
-	def __init__(self):
-		self.value = ""
-		"""The Voyager ITEM_ID"""
-		self.lang = ""
-		"""Language of cataloging"""
-		self.member = ""
-		"""Our best guess at whether it's got member copy"""
-		self.isbn = ""
-		"""ISBN"""
-		self.elvi = ""
-		"""Encoding level ldr/17-18"""
-		self.lit = ""
-		"""Value of 008/34-35"""
-		self.oclcnum = ""
-		"""OCLC number"""
-		self.date = ""
-		"""The date of this entry in w3cdt format YYYYMMDD"""
-		# TODO: add 6xx etc.?
+#class Item(object):
+	#def __init__(self):
+		#self.value = ""
+		#"""The Voyager ITEM_ID"""
+		#self.lang = ""
+		#"""Language of cataloging"""
+		#self.member = ""
+		#"""Our best guess at whether it's got member copy"""
+		#self.isbn = ""
+		#"""ISBN"""
+		#self.elvi = ""
+		#"""Encoding level ldr/17-18"""
+		#self.lit = ""
+		#"""Value of 008/34-35"""
+		#self.oclcnum = ""
+		#"""OCLC number"""
+		#self.date = ""
+		#"""The date of this entry in w3cdt format YYYYMMDD"""
+		## TODO: add 6xx etc.?
 
 def main(hold, query=None, ping=None,  firstitem=0, lastitem=0):
 	"""
@@ -203,6 +204,7 @@ def ping_worldcat(hold):
 		field050 = False
 		field090 = False
 		field6xx = False
+		msg = ''
 		
 		# output a new csv file
 		header = ['lang', 'item_id', 'bib_id', 'isbn', 'guess', 'oclc num', 'elvi', 'lit','title','loc','item created']
@@ -259,8 +261,28 @@ def ping_worldcat(hold):
 				if isbn is not None and isbn != '' and not re.search('[a-zA-Z:]',isbn): # sometimes text has been mistakenly entered into 020$a
 					times = [1.5,2,2.25,2.5,3]
 					randomsnooze = random.choice(times)
-					r = requests.get("http://www.worldcat.org/webservices/catalog/content/isbn/"+isbn+"?servicelevel=full&wskey="+wskey)
-					print("http://www.worldcat.org/webservices/catalog/content/isbn/"+isbn+"?servicelevel=full&wskey="+wskey)
+					connect_timeout = 7.0
+					url = "http://www.worldcat.org/webservices/catalog/content/isbn/"+isbn+"?servicelevel=full&wskey="+wskey
+					
+					try:
+						r = requests.get(url,timeout=(connect_timeout))
+					except requests.exceptions.Timeout as e:
+						msg = 'timeout','',''
+					except requests.exceptions.HTTPError as e:
+						msg = 'HTTPError','',''
+					except requests.exceptions.ConnectionError as e:
+						msg = 'Connection error','',''
+					except requests.exceptions.TooManyRedirects as e:
+						msg = 'Too many redirects','',''
+					except requests.exceptions.InvalidSchema as e:
+						msg = 'Invalid schema','',''
+					except:
+						msg = sys.exc_info()[0],'',''
+					if msg != '':
+						logging.info(str(msg),url)
+					
+					if verbose:
+						print(url)
 					
 					if r.status_code == 200:
 						tree = etree.fromstring(r.content)
@@ -522,12 +544,16 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Generate hold reports.')
 	parser.add_argument('-q','--query',dest="query",help="Query Voyager",required=False,action='store_true')
 	parser.add_argument('-p','--ping',dest="ping",help="Ping WorldCat",required=False,action='store_true')
+	parser.add_argument("-v", "--verbose",required=False, default=False, dest="verbose", action="store_true", help="Print out urls for feedback as it runs.")
 	args = vars(parser.parse_args())
 	query = args['query']
 	ping = args['ping']
+	verbose = args['verbose']
+	
+	#main('arabic',query,ping)
 	
 	# loop through all holds
-	holds = ['roman', 'latin_american', 'arabic', 'turkish', 'cyrillic']
+	holds = ['arabic','cyrillic','latin_american','roman', 'turkish']
 	
 	for h in holds:
 		main(h, query, ping)
