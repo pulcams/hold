@@ -55,25 +55,6 @@ today = time.strftime('%Y%m%d') # name log files
 todaydb = time.strftime('%Y-%m-%d') # date to check against db
 justnow = time.strftime("%m/%d/%Y") # freshness date of reports
 
-#class Item(object):
-	#def __init__(self):
-		#self.value = ""
-		#"""The Voyager ITEM_ID"""
-		#self.lang = ""
-		#"""Language of cataloging"""
-		#self.member = ""
-		#"""Our best guess at whether it's got member copy"""
-		#self.isbn = ""
-		#"""ISBN"""
-		#self.elvi = ""
-		#"""Encoding level ldr/17-18"""
-		#self.lit = ""
-		#"""Value of 008/34-35"""
-		#self.oclcnum = ""
-		#"""OCLC number"""
-		#self.date = ""
-		#"""The date of this entry in w3cdt format YYYYMMDD"""
-		## TODO: add 6xx etc.?
 
 def main(hold, query=None, ping=None,  firstitem=0, lastitem=0):
 	"""
