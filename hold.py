@@ -134,7 +134,7 @@ def query_vger(hold, firstitem=0, lastitem=0):
 		AND ITEM_STATUS_TYPE.ITEM_STATUS_TYPE ='22'
 		AND princetondb.GETBIBSUBFIELD(BIB_TEXT.BIB_ID, '902','a') is null
 		AND MFHD_MASTER.NORMALIZED_CALL_NO is null %s
-		AND LOCATION.LOCATION_ID in (%s) AND ROWNUM <= 10
+		AND LOCATION.LOCATION_ID in (%s)
 		ORDER BY BIB_TEXT.LANGUAGE, ITEM_STATUS.ITEM_ID""" % (place, vendor, parens, vendors, langs, isbn, items,locs)
 
 	DSN = cx_Oracle.makedsn(HOST,PORT,SID)	
