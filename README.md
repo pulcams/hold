@@ -53,7 +53,7 @@ cache.db is a sqlite database. A simple way to (re)create it (on Ubuntu)...
 cd db
 sqlite3 cache.db
 sqlite> .tables
-sqlite> CREATE TABLE items(item_id INT PRIMARY KEY, lang TEXT, guess TEXT, isbn TEXT, elvi TEXT, lit TEXT, oclcnum TEXT, date DATE);
+sqlite> CREATE TABLE items(item_id INT PRIMARY KEY, lang TEXT, guess TEXT, isbn TEXT, elvi TEXT, lit TEXT, oclcnum TEXT, date DATE, callno TEXT, pcc TEXT, lc_copy TEXT);
 ```
 To drop (delete) it:
 ```
