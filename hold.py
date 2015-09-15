@@ -12,6 +12,7 @@ pmg
 """
 
 import argparse
+import codecs
 import ConfigParser
 import csv
 import cx_Oracle
@@ -50,7 +51,6 @@ HTMLOUT = config.get('local', 'html') # reports.html
 LOG = config.get('local', 'log')
 SUMMARIES = config.get('local', 'summaries') # summary counts (and data for sparklines)
 
-maxage = 0 # number of days after which to re-check an item
 today = time.strftime('%Y%m%d') # name log files
 todaydb = time.strftime('%Y-%m-%d') # date to check against db
 justnow = time.strftime("%m/%d/%Y") # freshness date of reports
@@ -134,7 +134,8 @@ def query_vger(hold, firstitem=0, lastitem=0):
 		AND ITEM_STATUS_TYPE.ITEM_STATUS_TYPE ='22'
 		AND princetondb.GETBIBSUBFIELD(BIB_TEXT.BIB_ID, '902','a') is null
 		AND MFHD_MASTER.NORMALIZED_CALL_NO is null %s
-		ORDER BY BIB_TEXT.LANGUAGE, ITEM_STATUS.ITEM_ID""" % (place, vendor, parens, vendors, langs, isbn, items)
+		AND LOCATION.LOCATION_ID in (%s) AND ROWNUM <= 10
+		ORDER BY BIB_TEXT.LANGUAGE, ITEM_STATUS.ITEM_ID""" % (place, vendor, parens, vendors, langs, isbn, items,locs)
 
 	DSN = cx_Oracle.makedsn(HOST,PORT,SID)	
 	oradb = cx_Oracle.connect(USER,PASS,DSN)
@@ -147,7 +148,7 @@ def query_vger(hold, firstitem=0, lastitem=0):
 
 	with open(TEMPFILE,'wb+') as outfile:
 		writer = csv.writer(outfile)
-		header = ['LANGUAGE', 'ITEM_ID', 'BIB_ID', 'ISBN', 'TITLE_BRIEF', 'LOCATION_NAME','CREATE_DATE']
+		header = ['LANGUAGE', 'ITEM_ID', 'BIB_ID', 'ISBN', 'TITLE_BRIEF','LOCATION_NAME','CREATE_DATE']
 		if hold == "la": # not strictly necessary, but for clarity...
 			header.append('PUB_PLACE')
 			header.append('VENDOR')
@@ -166,7 +167,7 @@ def ping_worldcat(hold):
 	NS = {'marcxml':'http://www.loc.gov/MARC21/slim'}
 	DIAGNS = {'diag':'http://www.loc.gov/zing/srw/diagnostic'}
 	
-	# sqllite connection
+	# sqlite connection
 	con = lite.connect(DB_FILE)
 	cached_date = None
 	datediff = 0
@@ -180,21 +181,25 @@ def ping_worldcat(hold):
 		elvi = ''
 		lang = ''
 		oclcnum = ''
+		callno = ''
 		lit = ''
+		pcc = 'no'
+		lc = 'no'
 		field042 = ''
 		field050 = False
 		field090 = False
 		field6xx = False
 		msg = ''
 		
-		# output a new csv file
-		header = ['lang', 'item_id', 'bib_id', 'isbn', 'guess', 'oclc num', 'elvi', 'lit','title','loc','item created']
+		# output a new csv file (the downloadable report)
+		header = ['lang', 'item_id', 'bib_id', 'isbn', 'oclc num', 'elvi','title','callno','loc','item created','lc_copy','pcc']
 		
 		if hold == 'latin_american':
 			header.append('place')
 			header.append('vendor') 
 		
-		with open(outfile,'wb+') as out:
+		with codecs.open(outfile,'wb+','utf-8') as out:
+			out.write(u'\ufeff') # inserting the BOM so Unicode can be displayed in Excel
 			writer = csv.writer(out)
 			writer.writerow(header)
 			
@@ -239,7 +244,7 @@ def ping_worldcat(hold):
 			# check cache -- don't ping worldcat unless we have to
 			if cached_date is None or datediff >= maxage:
 			#if isbn is not None and isbn != '' and isbn !=':': # <= for debugging
-				if isbn is not None and isbn != '' and not re.search('[a-zA-Z:]',isbn): # sometimes text has been mistakenly entered into 020$a
+				if isbn is not None and isbn != '' and (not re.search('[a-zA-Z:]',isbn) or re.search('[xX]?$',isbn)): # sometimes text has been mistakenly entered into 020$a
 					times = [1.5,2,2.25,2.5,3]
 					randomsnooze = random.choice(times)
 					connect_timeout = 7.0
@@ -272,9 +277,9 @@ def ping_worldcat(hold):
 							ldr = tree.xpath("//marcxml:leader/text()",namespaces=NS)
 							field008 = tree.xpath("//marcxml:controlfield[@tag='008']/text()",namespaces=NS)
 							field001 = tree.xpath("//marcxml:controlfield[@tag='001']/text()",namespaces=NS)
-							#field050 = tree.xpath("//marcxml:datafield[@tag='050'][@ind1=' ' or @ind1='' or @ind1='0'][@ind2=' ' or @ind2='' or @ind2='0']/marcxml:subfield/@code='a'",namespaces=NS) # 050_ _ - LC call number
+							field050_lc = tree.xpath("//marcxml:datafield[@tag='050'][@ind1='0'][@ind2='0']",namespaces=NS) # 050_ _ - LC call number
 							field050 = tree.xpath("//marcxml:datafield/@tag='050'",namespaces=NS) # 050 - simply tests for existence of 050, if we need to test for LC copy, see the commented-out line above
-							field042 = tree.xpath("//marcxml:datafield[@tag='042']/text()",namespaces=NS) # 042$a - authentication code
+							field042 = tree.xpath("//marcxml:datafield[@tag='042']/marcxml:subfield[@code='a']/text()",namespaces=NS) # 042$a - authentication code
 							field090 = tree.xpath("//marcxml:datafield/@tag='090'",namespaces=NS) # 090 - shelf location
 							field6xx = tree.xpath("//marcxml:datafield/@tag[starts-with(.,'6')]",namespaces=NS) #600, 610, 611, 65[^3] - subjects
 							field6xx = any(x in ['600', '610', '611','650','651','654','655','656','677','658'] for x in field6xx)
@@ -282,6 +287,10 @@ def ping_worldcat(hold):
 							lit = field008[0][34:35]
 							lang = field008[0][35:38]
 							oclcnum = field001[0]
+							callno = tree.xpath("//marcxml:datafield[@tag='050']/marcxml:subfield[@code='a']/text()",namespaces=NS)
+							callno += tree.xpath("//marcxml:datafield[@tag='090']/marcxml:subfield[@code='a']/text()",namespaces=NS)
+							callno = '|'.join(callno)
+							
 							# from member copy cat policy checklist, possibly include later...
 							#date = field008[0]
 							#place = field008[0]
@@ -289,13 +298,24 @@ def ping_worldcat(hold):
 							#field245
 							#field250
 							#field260/264
-							
+	
+							# member copy?
 							if (field050 == True or field090 == True) and (field6xx == True or (lit != '0' or lit != ' ')):
 								ismember = True
 								guess = 'member'
 							else:
 								ismember = False
 								guess = 'in oclc but not member'
+								
+							# pcc?
+							for this042 in field042:
+								if this042.lower().strip() == 'pcc':
+									pcc = '042 pcc'
+							
+							# lc copy?
+							if field050_lc == True:
+								lc = '050 00'
+						
 						else:
 							guess = 'not found in oclc'
 								
@@ -307,12 +327,12 @@ def ping_worldcat(hold):
 					cur = con.cursor() 
 					if cached_date is None:
 						# insert new item into db
-						newitem = (itemid, lang, guess, isbn, elvi, lit, oclcnum, todaydb)
-						cur.executemany("INSERT INTO items VALUES(?, ?, ?, ?, ?, ?, ?, ?)", (newitem,))
+						newitem = (itemid, lang, guess, isbn, elvi, lit, oclcnum, todaydb, callno, pcc, lc)
+						cur.executemany("INSERT INTO items VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (newitem,))
 					else:
 						# or, if it was in the cache for a while, update the item
-						updateitem = (lang, guess, isbn, elvi, lit, oclcnum, todaydb, itemid)
-						cur.executemany("UPDATE items SET lang=?, guess=?, isbn=?, elvi=?, lit=?, oclcnum=?, date=? WHERE item_id=?", (updateitem,))
+						updateitem = (lang, guess, isbn, elvi, lit, oclcnum, todaydb, callno, pcc, lc, itemid)
+						cur.executemany("UPDATE items SET lang=?, guess=?, isbn=?, elvi=?, lit=?, oclcnum=?, date=?, callno=?, pcc=?, lc_copy=? WHERE item_id=?", (updateitem,))
 					
 			elif cached_date is not None and datediff < maxage:
 				# just get out existing fields for new csv file
@@ -320,13 +340,16 @@ def ping_worldcat(hold):
 				rows = cur.fetchall()
 				for row in rows:
 					elvi = str(row['elvi'])
-					lit = str(row['lit'])
+					#lit = str(row['lit']) # probably not needed for output
 					lang = str(row['lang'])
 					oclcnum = str(row['oclcnum'])
 					guess = str(row['guess'])
+					callno = str(row['callno'])
+					lc = str(row['lc_copy'])
+					pcc = str(row['pcc'])
 			
 			# write results of query to the new csv. NOTE: the ="" is to get around Excel's number formatting issues.
-			row = (vlang, itemid, bibid, '="'+isbn+'"', guess, '="'+oclcnum+'"', elvi, lit, ti, loc, created)
+			row = (vlang, itemid, bibid, '="'+isbn+'"', '="'+oclcnum+'"', elvi, ti, callno, loc, created, lc, pcc)
 			if hold == 'latin_american': 
 				# extra fields for latin_american
 				r = list(row)
@@ -520,20 +543,21 @@ d3.csv('./summaries/sample.csv', function(error, data) {
 
 
 if __name__ == "__main__":
-		
-	# parse cli args when running locally 
 	parser = argparse.ArgumentParser(description='Generate hold reports.')
 	parser.add_argument('-q','--query',dest="query",help="Query Voyager",required=False,action='store_true')
 	parser.add_argument('-p','--ping',dest="ping",help="Ping WorldCat",required=False,action='store_true')
+	parser.add_argument('-a','--age',dest="maxage",help="Max days after which to re-check WorldCat",required=False, default=30)
 	parser.add_argument("-v", "--verbose",required=False, default=False, dest="verbose", action="store_true", help="Print out urls for feedback as it runs.")
 	args = vars(parser.parse_args())
 	query = args['query']
 	ping = args['ping']
+	maxage = int(args['maxage'])
 	verbose = args['verbose']
 	
-	#main('arabic',query,ping)
+	## one at a time
+	#main('cyrillic',query,ping)
 	
-	# loop through all holds
+	## loop through all holds
 	holds = ['arabic','cyrillic','latin_american','roman', 'turkish']
 	
 	for h in holds:
