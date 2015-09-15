@@ -3,6 +3,7 @@
 
 """
 Generate treemap of hold.
+NOTE: use absolute paths when running with crontab, relative paths won't work
 from 20150617
 pmg
 """
@@ -45,7 +46,7 @@ def run_query():
 	q = """SELECT BIB_TEXT.LANGUAGE, Count(BIB_TEXT.BIB_ID) AS total,
 MAX(princetondb.GETBIBSUBFIELD(BIB_TEXT.BIB_ID, '904','e')) as max904, MIN(princetondb.GETBIBSUBFIELD(BIB_TEXT.BIB_ID, '904','e')) as min904,
 MIN(to_char(ITEM.CREATE_DATE,'yyyymmdd')) as mincre,
-to_char(SYSDATE,'yyyymmdd') as today, to_date(to_char(SYSDATE,'yyyymmdd'),'yyyymmdd') -  MIN(to_date(to_char(ITEM.CREATE_DATE,'yyyymmdd'),'yyyymmdd')) as max_age_in_days
+to_char(SYSDATE,'yyyymmdd') as today, to_date(to_char(SYSDATE,'yyyymmdd'),'yyyymmdd') -  MIN(to_date(to_char(ITEM.CREATE_DATE,'yyyymmdd'),'yyyymmdd')) as max_age_in_days, MIN(to_date(to_char(ITEM.CREATE_DATE,'yyyymmdd'),'yyyymmdd')) as maxdate
 FROM
 (((((BIB_TEXT 
 INNER JOIN BIB_MFHD ON BIB_TEXT.BIB_ID = BIB_MFHD.BIB_ID
@@ -66,7 +67,7 @@ GROUP BY  BIB_TEXT.LANGUAGE"""
 	c.execute(q)
 	with open(tempout+'output_'+today+'.csv','wb+') as outfile:
 		writer = csv.writer(outfile)
-		header = ['lang','total','max904','min904','mincre','today','max_age_in_days']
+		header = ['lang','total','max904','min904','mincre','today','max_age_in_days','maxdate']
 		writer.writerow(header) 
 		for row in c:
 			writer.writerow(row)
@@ -118,7 +119,7 @@ def make_html():
           </div><!--/.nav-collapse -->
         </div><!--/.container-fluid -->
       </nav>
-      <p style="margin-left:60px;">An educated guess about the number of items in the hold on <strong>"""+justnow+"""</strong>, based on language groups.</p>
+      <p style="margin-left:60px;">An educated guess about the number of items in the hold on <strong>"""+justnow+"""</strong>, based on language groups. "Maxdate" is the oldest item's create date, "Age" is its age in days.</p>
     </div>
 	<div id="viz" class="container" style="width:60%;height:600px;"></div>
 	<script>
@@ -135,7 +136,8 @@ def make_html():
     .id(["group","lang"])
     .size("value")
     .font("serif")
-    .color("oldest")
+    .color("age")
+    .tooltip(["maxdate","age"])
     .zoom(true)
     .depth(0)
     .ui([
@@ -158,6 +160,7 @@ def make_html():
 		lang = row[0]
 		count = row[1]
 		age = row[6]
+		maxdate = str.replace(str(row[7]),' 00:00:00','')
 		if lang == 'ara':
 			group = "Arabic"
 		elif lang == 'tur':
@@ -170,9 +173,9 @@ def make_html():
 			group = 'Roman'
 			
 		if rownum == 1:
-			htmlfile.write('{"value":%s,"lang":"%s","group":"%s","oldest":%s}' % (count,lang,group,age))
+			htmlfile.write('{"value":%s,"lang":"%s","group":"%s","age":%s,"maxdate":"%s"}' % (count,lang,group,age,maxdate))
 		elif rownum > 1:
-			htmlfile.write(',\n{"value":%s,"lang":"%s","group":"%s","oldest":%s}' % (count,lang,group,age))
+			htmlfile.write(',\n{"value":%s,"lang":"%s","group":"%s","age":%s,"maxdate":"%s"}' % (count,lang,group,age,maxdate))
 		rownum += 1
 	htmlfile.write(footer)
 
