@@ -147,7 +147,7 @@ def make_html():
       },
       {
         "method" : "color",
-        "value"  : [{"by hold": "group"}, {"by max age": "oldest"}]
+        "value"  : [{"by hold": "group"}, {"by max age": "age"}]
       }
     ])
     .draw()
