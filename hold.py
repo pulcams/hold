@@ -21,9 +21,13 @@ import random
 import re
 import requests
 import sqlite3 as lite
+import sys
 import time
 from datetime import date, datetime, timedelta
 from lxml import etree
+
+#TODO
+# check 050 and 090 for presence of 0-9
 
 #TODO?
 # add BOM or UnicodeWriter for opening in Excel
@@ -196,7 +200,9 @@ def ping_worldcat(hold):
 		
 		if hold == 'latin_american':
 			header.append('place')
-			header.append('vendor') 
+			header.append('vendor')
+			
+		header.append(justnow) # just add the date as the last col heading
 		
 		with codecs.open(outfile,'wb+','utf-8') as out:
 			out.write(u'\ufeff') # inserting the BOM so Unicode can be displayed in Excel
@@ -253,19 +259,19 @@ def ping_worldcat(hold):
 					try:
 						r = requests.get(url,timeout=(connect_timeout))
 					except requests.exceptions.Timeout as e:
-						msg = 'timeout','',''
+						msg = 'timeout'
 					except requests.exceptions.HTTPError as e:
-						msg = 'HTTPError','',''
+						msg = 'HTTPError'
 					except requests.exceptions.ConnectionError as e:
-						msg = 'Connection error','',''
+						msg = 'Connection error'
 					except requests.exceptions.TooManyRedirects as e:
-						msg = 'Too many redirects','',''
+						msg = 'Too many redirects'
 					except requests.exceptions.InvalidSchema as e:
-						msg = 'Invalid schema','',''
+						msg = 'Invalid schema'
 					except:
-						msg = sys.exc_info()[0],'',''
+						msg = str(sys.exc_info()[0])
 					if msg != '':
-						logging.info(str(msg),url)
+						logging.info('%s %s' & (msg,url))
 					
 					if verbose:
 						print(url)
@@ -277,7 +283,8 @@ def ping_worldcat(hold):
 							ldr = tree.xpath("//marcxml:leader/text()",namespaces=NS)
 							field008 = tree.xpath("//marcxml:controlfield[@tag='008']/text()",namespaces=NS)
 							field001 = tree.xpath("//marcxml:controlfield[@tag='001']/text()",namespaces=NS)
-							field050_lc = tree.xpath("//marcxml:datafield[@tag='050'][@ind1='0'][@ind2='0']",namespaces=NS) # 050_ _ - LC call number
+							field050_ind1 = tree.xpath("//marcxml:datafield[@tag='050']/@ind1='0'",namespaces=NS) # 0500 _ - LC call number ind1
+							field050_ind2 = tree.xpath("//marcxml:datafield[@tag='050']/@ind2='0'",namespaces=NS) # 050_ 0 - LC call number ind2
 							field050 = tree.xpath("//marcxml:datafield/@tag='050'",namespaces=NS) # 050 - simply tests for existence of 050, if we need to test for LC copy, see the commented-out line above
 							field042 = tree.xpath("//marcxml:datafield[@tag='042']/marcxml:subfield[@code='a']/text()",namespaces=NS) # 042$a - authentication code
 							field090 = tree.xpath("//marcxml:datafield/@tag='090'",namespaces=NS) # 090 - shelf location
@@ -311,10 +318,14 @@ def ping_worldcat(hold):
 							for this042 in field042:
 								if this042.lower().strip() == 'pcc':
 									pcc = '042 pcc'
+								else:
+									pcc = 'no'
 							
 							# lc copy?
-							if field050_lc == True:
+							if field050_ind1 == True and field050_ind2 == True:
 								lc = '050 00'
+							else:
+								lc = 'no'
 						
 						else:
 							guess = 'not found in oclc'
@@ -468,7 +479,7 @@ def make_html():
         </div><!--/.container-fluid -->
       </nav>
       
-	<p><img src='images/apple-web.jpg' alt='fresh apple' width="25px" height="40px" style="margin-right:10px;"/> Low-hanging fruit, ripe for the picking. Freshness date: %s.</p>""" % justnow
+	<p><img src='images/apple-web.jpg' alt='fresh apple' width="25px" height="40px" style="margin-right:10px;"/> Low-hanging fruit, ripe for the picking. Freshness date: %s. <a href="about.html">about</a></p>""" % justnow
 	
 	body += """
 	<p><a href="./data/arabic.csv">Arabic</a> <span id="spark_ara"></span></p>
