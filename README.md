@@ -32,8 +32,8 @@ What hold.py does for each hold...
 * MFHD call no.: no
 * Item Status: In Process
 * 902: no
-* <strike> Locations (non-SA): anxb, dixn, f, mus, sd, se, sh, st, sv, zeis, srel, ssrc, sxf, vidl, piapr, anxa, dc, dr, ppl, sc, scp, shs, slav, spc, spia, spr, anxbl, rcppa, clas, docs, fis, rcppk, rcpqk, scl, sci, egsr
-* Locations (SA): sa, saph, rcppj</strike>
+* Locations (non-SA): anxb, dixn, f, mus, sd, se, sh, st, sv, zeis, srel, ssrc, sxf, vidl, piapr, anxa, dc, dr, ppl, sc, scp, shs, slav, spc, spia, spr, anxbl, rcppa, clas, docs, fis, rcppk, rcpqk, scl, sci, egsr
+* <strike>Locations (SA): sa, saph, rcppj</strike>
 * Either a subject [600, 610, 611, 65x] *or* literary form is something other than "0" or " "
 
 ##### WorldCat data
@@ -43,7 +43,7 @@ What we're checking in the MARCXML returned from WorldCat...
 * 008/33 - literary form
 * 001 - OCLC number
 * 042$a - authentication code
-* <strike>050_ _ - LC call number</strike> - just checking for existence of 050
+* 050_ _ - LC call number
 * 090 - shelf location
 * 600, 610, 611, 65[^3] - subjects
 
