@@ -97,7 +97,6 @@ def query_vger(hold, firstitem=0, lastitem=0):
 	vendor = "" # ditto (the field name)
 	vendors = "" # ditto (the joins)
 	isbn = "AND BIB_TEXT.ISBN is not null" # only include null isbn for latin_american
-	# NOTE: vger locs were part of the original Roman Hold query. Not using them but keeping this variable here in case. 
 	locs = "'6','7','13','20','21','22','24','46','84','96','138','140','142','144','163','165','171','195','197','204','214','217','221','229','250','281','287','372','419','444','446','448','450','468','492','523'"
 	
 	if hold == 'roman':
@@ -114,8 +113,12 @@ def query_vger(hold, firstitem=0, lastitem=0):
 		langs = "'tur'"
 	elif hold == 'arabic':
 		langs = "'ara'"
+	elif hold == 'persian':
+		langs = "'per'"
 	elif hold == 'cyrillic':
 		langs = "'rus', 'aze', 'bul', 'ukr'"
+	elif hold == 'greek':
+        langs = "'gre','grc'"
 		
 	if firstitem > 0 or lastitem > 0:
 		items = "AND ITEM_STATUS.ITEM_ID between '%s' and '%s'" % (firstitem,lastitem)
@@ -159,7 +162,8 @@ def query_vger(hold, firstitem=0, lastitem=0):
 		writer.writerow(header) 
 		for row in r:
 			writer.writerow(row)
-		
+
+
 def ping_worldcat(hold):
 	"""
 	check isbn against worldcat search api
@@ -229,7 +233,6 @@ def ping_worldcat(hold):
 			except:
 				vendor = ''
 				
-			
 			with con:
 				con.row_factory = lite.Row
 				cur = con.cursor()
@@ -372,6 +375,11 @@ def ping_worldcat(hold):
 				with open(outfile,'ab+') as out:
 						writer = csv.writer(out)
 						writer.writerow(row)
+			elif hold == 'greek' and elvi != ' ':
+				# we want full report (member or not) with encoding level other than full #TODO refactor
+				with open(outfile,'ab+') as out:
+					writer = csv.writer(out)
+					writer.writerow(row)
 			else: 
 				# ...for all other holds, just report likely member copy...
 				if guess == 'member':
@@ -566,10 +574,10 @@ if __name__ == "__main__":
 	verbose = args['verbose']
 	
 	## one at a time
-	#main('cyrillic',query,ping)
+	#main('persian',query,ping)
 	
 	## loop through all holds
-	holds = ['arabic','cyrillic','latin_american','roman', 'turkish']
+	holds = ['arabic','cyrillic','greek','latin_american','persian','roman', 'turkish']
 	
 	for h in holds:
 		main(h, query, ping)
