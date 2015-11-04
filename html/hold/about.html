@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>About</title>
+  <meta name="description" content="Hold stuff">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+  <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+</head>
+<body>
+	<div class="container">
+	<!-- sparklines code STOLEN! from here http://www.tnoda.com/blog/2013-12-19 -->
+	<div class="container">
+	 <!-- Static navbar -->
+      <nav class="navbar navbar-default navbar-fixed-top">
+        <div class="container">
+          <div class="navbar-header">
+         
+            <a class="navbar-brand" href="index.html">The Holds</a>
+          </div>
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav">
+              <li><a href="reports.html">Picklists</a></li>
+              <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Stats <span class="caret"></span></a>
+                <ul class="dropdown-menu">
+			      <li class="dropdown-header">Weekly</li>
+                  <li><a href="treemap.html">Treemap</a></li>
+                  <li role="separator" class="divider"></li>
+                  <li class="dropdown-header">Quarterly</li>
+                  <li><a href="multiples.html">Small multiples</a></li>
+                  <li><a href="stacked.html">Stacked area chart</a></li>
+                </ul>
+              </li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div><!--/.container-fluid -->
+      </nav>
+      <p><img src='images/apple-web.jpg' alt='fresh apple' width="25px" height="40px" style="margin-right:10px;"/><a href="reports.html">back</a></p>
+   <h3>Basic Query Logic</h3>
+ <p>If you're a Voyager record, you probably have member copy if you have...</p>
+ <p>
+<ul style="color:#666;">
+<li>an ISBN that matches a WorldCat record, and if that WorldCat record has...</li>
+<ul>
+<li>A call number in the 050 and/or 090 (including numbers, 0-9)</li>
+<li>Either a subject (600, 610, 611, 65x other than 653) <b>OR</b> literary form (008/33) other than "0" or " "</li>
+</ul>
+</ul>
+</p>
+	<h3>Variations</h3>
+	<p>Reports are arrived at by querying both Voyager (V) and WorldCat (WC). There are <span style="background-color:#f2dede;">slight variations</span> per report...</p>
+	<table class="table table-bordered table-condensed">
+		<thead><tr><td>report</td><td>language(s) (V)</td><td>must have isbn (V)</td><td>encoding level (WC)</td><td>SA locations (V)</td></tr></thead>
+		<tbody><tr><td>Arabic</td><td  class="danger">ara</td><td>yes</td><td class="danger">IL4_</td><td>no</td></tr>
+		<tr><td>Cyrillic</td><td class="danger">rus,aze,bul,ukr</td><td>yes</td><td>all</td><td class="danger">yes</td></tr>
+		<tr><td>Greek</td><td class="danger">grc,gre</td><td>yes</td><td class="danger">all but full</td><td>no</td></tr>
+		<tr><td>Latin American</td><td class="danger">spa,por,cat</td><td class="danger">no</td><td>all</td><td>no</td></tr>
+		<tr><td>Roman</td><td class="danger">eng,fre,ger,ita,dut,rum,lat</td><td>yes</td><td>all</td><td>no</td></tr>
+		<tr><td>Turkish</td><td class="danger">tur</td><td>yes</td><td>all</td><td>no</td></tr></tbody>
+	</table>
+  <h3>Common checks</h3>
+   <p>For all reports...</p>
+   <h5>From Voyager data</h5>
+   <ul>
+<li>MFHD call no.: no</li>
+<li>Item Status: In Process</li>
+<li>902: no</li>
+<li>Locations (non-SA): anxb, dixn, f, mus, sd, se, sh, st, sv, zeis, srel, ssrc, sxf, vidl, piapr, anxa, dc, dr, ppl, sc, scp, shs, slav, spc, spia, spr, anxbl, rcppa, clas, docs, fis, rcppk, rcpqk, scl, sci, egsr</li>
+<li>Locations (SA): sa, saph, rcppj</li>
+<li>Either a subject (600, 610, 611, 65x other than 653) *or* literary form (008/33) is something other than "0" or " "</li>
+</ul>
+<h5>From WorldCat data</h5>
+<ul>
+<li>leader/18 - encoding level</li>
+<li>008/35-37 - language</li>
+<li>008/33 - literary form</li>
+<li>001 - OCLC number</li>
+<li>042$a - authentication code</li>
+<li>050_ _ - LC call number</li>
+<li>090 - shelf location</li>
+<li>600, 610, 611, 65X other than 653 - subjects</li>
+</ul>
+ </div>
+</body>
+</html>
