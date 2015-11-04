@@ -12,7 +12,9 @@ Generates reports to help our catalogers quickly identify items in the hold with
 We're searching the following holds, based on language groups:
 * Arabic (ara)
 * Cyrillic (aze, bul, rus, ukr)
+* Greek (grc,gre)
 * Latin American (cat, por, spa)
+* Persian (per)
 * Roman (dut, eng, fre, ger, lat, ita, rum)
 * Turkish (tur)
 
@@ -33,7 +35,7 @@ What hold.py does for each hold...
 * Item Status: In Process
 * 902: no
 * Locations (non-SA): anxb, dixn, f, mus, sd, se, sh, st, sv, zeis, srel, ssrc, sxf, vidl, piapr, anxa, dc, dr, ppl, sc, scp, shs, slav, spc, spia, spr, anxbl, rcppa, clas, docs, fis, rcppk, rcpqk, scl, sci, egsr
-* <strike>Locations (SA): sa, saph, rcppj</strike>
+* Locations (SA): sa, saph, rcppj
 * Either a subject [600, 610, 611, 65x] *or* literary form is something other than "0" or " "
 
 ##### WorldCat data
