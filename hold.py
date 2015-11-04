@@ -98,6 +98,7 @@ def query_vger(hold, firstitem=0, lastitem=0):
 	vendors = "" # ditto (the joins)
 	isbn = "AND BIB_TEXT.ISBN is not null" # only include null isbn for latin_american
 	locs = "'6','7','13','20','21','22','24','46','84','96','138','140','142','144','163','165','171','195','197','204','214','217','221','229','250','281','287','372','419','444','446','448','450','468','492','523'"
+	sa_locs = "'123','129','423'"
 	
 	if hold == 'roman':
 		langs = "'eng','fre','ger','ita','dut','rum','lat'"
@@ -117,6 +118,7 @@ def query_vger(hold, firstitem=0, lastitem=0):
 		langs = "'per'"
 	elif hold == 'cyrillic':
 		langs = "'rus', 'aze', 'bul', 'ukr'"
+		locs = locs + ',' + sa_locs
 	elif hold == 'greek':
         langs = "'gre','grc'"
 		
@@ -492,7 +494,9 @@ def make_html():
 	body += """
 	<p><a href="./data/arabic.csv">Arabic</a> <span id="spark_ara"></span></p>
 	<p><a href="./data/cyrillic.csv">Cyrillic</a> <span id="spark_cyr"></span></p>
+	<p><a href="./data/greek.csv">Greek</a> <span id="spark_gre"></span></p>
 	<p><a href="./data/latin_american.csv">Latin American</a> <span id="spark_spa"></span></p>
+	<p><a href="./data/persian.csv">Persian</a> <span id="spark_per"></span></p>
 	<p><a href="./data/roman.csv">Roman</a> <span id="spark_roman"></span></p>
 	<p><a href="./data/turkish.csv">Turkish</a> <span id="spark_tur"></span></p>
 	<p><a href="https://docs.google.com/a/princeton.edu/forms/d/18SPb-XvSLPRxt5O2XIW4qhJpFivg9v_84wmu6B1RNUw/viewform" target="_BLANK">Custom report</a> (Google sign-in)</p>
@@ -549,6 +553,12 @@ d3.csv('./summaries/turkish.csv', function(error, data) {
 });
 d3.csv('./summaries/cyrillic.csv', function(error, data) {
   sparkline('#spark_cyr', data);
+});
+d3.csv('./summaries/persian.csv', function(error, data) {
+  sparkline('#spark_per', data);
+});
+d3.csv('./summaries/greek.csv', function(error, data) {
+  sparkline('#spark_gre', data);
 });
 d3.csv('./summaries/sample.csv', function(error, data) {
   sparkline('#spark_sample', data);
