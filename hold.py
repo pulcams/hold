@@ -120,7 +120,7 @@ def query_vger(hold, firstitem=0, lastitem=0):
 		langs = "'rus', 'aze', 'bul', 'ukr'"
 		locs = locs + ',' + sa_locs
 	elif hold == 'greek':
-        langs = "'gre','grc'"
+		langs = "'gre','grc'"
 		
 	if firstitem > 0 or lastitem > 0:
 		items = "AND ITEM_STATUS.ITEM_ID between '%s' and '%s'" % (firstitem,lastitem)
