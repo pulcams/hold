@@ -123,6 +123,8 @@ def query_vger(hold, firstitem=0, lastitem=0):
 		langs = "'gre','grc'"
 	elif hold == 'hebrew':
 		langs = "'heb'"
+	elif hold == 'cjk_art':
+		langs = "'chi','jpn','kor'"
 		
 	if firstitem > 0 or lastitem > 0:
 		items = "AND ITEM_STATUS.ITEM_ID between '%s' and '%s'" % (firstitem,lastitem)
@@ -497,6 +499,7 @@ def make_html():
 	
 	body += """
 	<p><a href="./data/arabic.csv">Arabic</a> <span id="spark_ara"></span></p>
+	<p><a href="./data/cjk_art.csv">cjk art</a> <span id="spark_cjk_art"></span></p>
 	<p><a href="./data/cyrillic.csv">Cyrillic</a> <span id="spark_cyr"></span></p>
 	<p><a href="./data/greek.csv">Greek</a> <span id="spark_gre"></span></p>
 	<p><a href="./data/hebrew.csv">Hebrew</a> <span id="spark_heb"></span></p>
@@ -565,6 +568,9 @@ d3.csv('./summaries/persian.csv', function(error, data) {
 d3.csv('./summaries/greek.csv', function(error, data) {
   sparkline('#spark_gre', data);
 });
+d3.csv('./summaries/cjk_art.csv', function(error, data) {
+  sparkline('#spark_cjk_art', data);
+});
 d3.csv('./summaries/hebrew.csv', function(error, data) {
   sparkline('#spark_heb', data);
 });
@@ -595,7 +601,7 @@ if __name__ == "__main__":
 	#main('persian',query,ping)
 	
 	## loop through all holds
-	holds = ['arabic','cyrillic','greek','hebrew','latin_american','persian','roman', 'turkish']
+	holds = ['arabic','cyrillic','greek','hebrew','latin_american','persian','roman', 'turkish','cjk_art']
 	
 	for h in holds:
 		main(h, query, ping)
