@@ -86,6 +86,7 @@ def main(hold, query=None, ping=None,  firstitem=0, lastitem=0):
 		
 	logging.info('-' * 23 + 'END')
 
+
 def query_vger(hold, firstitem=0, lastitem=0):
 	"""
 	query vger => temp csv file
@@ -96,9 +97,10 @@ def query_vger(hold, firstitem=0, lastitem=0):
 	parens = "" # ditto
 	vendor = "" # ditto (the field name)
 	vendors = "" # ditto (the joins)
-	isbn = "AND BIB_TEXT.ISBN is not null" # only include null isbn for latin_american
+	isbn = "AND REGEXP_REPLACE(BIB_TEXT.ISBN,'\s.*','') is not null" # only include null isbn for latin_american
 	locs = "'6','7','13','20','21','22','24','46','84','96','138','140','142','144','163','165','171','195','197','204','214','217','221','229','250','281','287','372','419','444','446','448','450','468','492','523'"
 	sa_locs = "'123','129','423'"
+	ues_loc = "'273'"
 	
 	if hold == 'roman':
 		langs = "'eng','fre','ger','ita','dut','rum','lat'"
@@ -118,13 +120,14 @@ def query_vger(hold, firstitem=0, lastitem=0):
 		langs = "'per'"
 	elif hold == 'cyrillic':
 		langs = "'rus', 'aze', 'bul', 'ukr'"
-		locs = locs + ',' + sa_locs
+		locs = locs + ',' + sa_locs + ',' + ues_loc
 	elif hold == 'greek':
 		langs = "'gre','grc'"
 	elif hold == 'hebrew':
 		langs = "'heb'"
 	elif hold == 'cjk_art':
 		langs = "'chi','jpn','kor'"
+		locs = sa_locs
 		
 	if firstitem > 0 or lastitem > 0:
 		items = "AND ITEM_STATUS.ITEM_ID between '%s' and '%s'" % (firstitem,lastitem)
@@ -192,21 +195,6 @@ def ping_worldcat(hold):
 		reader = csv.reader(indata,delimiter=',', quotechar='"')
 		firstline = reader.next()
 		
-		guess = ''
-		isbn = ''
-		elvi = ''
-		lang = ''
-		oclcnum = ''
-		callno = ''
-		lit = ''
-		pcc = 'no'
-		lc = 'no'
-		field042 = ''
-		field050 = False
-		field090 = False
-		field6xx = False
-		msg = ''
-		
 		# output a new csv file (the downloadable report)
 		header = ['lang', 'item_id', 'bib_id', 'isbn', 'oclc num', 'elvi','title','callno','loc','item created','lc_copy','pcc']
 		
@@ -221,7 +209,21 @@ def ping_worldcat(hold):
 			writer = csv.writer(out)
 			writer.writerow(header)
 			
-		for line in reader: 
+		for line in reader:
+			lc = 'no'
+			pcc = 'no'
+			callno = ''
+			lit = ''
+			elvi = ''
+			lang = ''
+			oclcnum = ''
+			guess = ''
+			isbn = ''
+			field042 = ''
+			field050 = False
+			field090 = False
+			field6xx = False
+			msg = ''
 			vlang = line[0]
 			itemid = line[1]
 			bibid = line[2]
@@ -282,7 +284,7 @@ def ping_worldcat(hold):
 					except:
 						msg = str(sys.exc_info()[0])
 					if msg != '':
-						logging.info('%s %s' & (msg,url))
+						logging.info('%s %s' % (msg,url))
 					
 					if verbose:
 						print(url)
@@ -396,6 +398,7 @@ def ping_worldcat(hold):
 						with open(outfile,'ab+') as out:
 							writer = csv.writer(out)
 							writer.writerow(row)
+
 	if con:
 		con.close()
 		
@@ -499,7 +502,7 @@ def make_html():
 	
 	body += """
 	<p><a href="./data/arabic.csv">Arabic</a> <span id="spark_ara"></span></p>
-	<p><a href="./data/cjk_art.csv">cjk art</a> <span id="spark_cjk_art"></span></p>
+	<p><a href="./data/cjk_art.csv">CJK Art</a> <span id="spark_cjk_art"></span></p>
 	<p><a href="./data/cyrillic.csv">Cyrillic</a> <span id="spark_cyr"></span></p>
 	<p><a href="./data/greek.csv">Greek</a> <span id="spark_gre"></span></p>
 	<p><a href="./data/hebrew.csv">Hebrew</a> <span id="spark_heb"></span></p>
@@ -598,7 +601,7 @@ if __name__ == "__main__":
 	verbose = args['verbose']
 	
 	## one at a time
-	#main('persian',query,ping)
+	#main('latin_american',query,ping)
 	
 	## loop through all holds
 	holds = ['arabic','cyrillic','greek','hebrew','latin_american','persian','roman', 'turkish','cjk_art']
