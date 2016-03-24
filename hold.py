@@ -93,6 +93,7 @@ def query_vger(hold, firstitem=0, lastitem=0):
 	"""
 	logging.info("querying Voyager")
 	langs = ""
+	lang_cond = "" # for negating a set of languages
 	place = "" # only for latin_american
 	parens = "" # ditto
 	vendor = "" # ditto (the field name)
@@ -127,6 +128,10 @@ def query_vger(hold, firstitem=0, lastitem=0):
 		langs = "'heb'"
 	elif hold == 'cjk_art':
 		langs = "'chi','jpn','kor'"
+		locs = sa_locs + ',' + ues_loc
+	elif hold == 'art':
+		langs = "'chi','jpn','kor'"
+		lang_cond = 'NOT'
 		locs = sa_locs
 		
 	if firstitem > 0 or lastitem > 0:
@@ -147,13 +152,13 @@ def query_vger(hold, firstitem=0, lastitem=0):
 		INNER JOIN ITEM_STATUS_TYPE ON ITEM_STATUS.ITEM_STATUS = ITEM_STATUS_TYPE.ITEM_STATUS_TYPE) 
 		INNER JOIN LOCATION ON MFHD_MASTER.LOCATION_ID = LOCATION.LOCATION_ID
 		WHERE 
-		BIB_TEXT.LANGUAGE IN (%s) %s
+		BIB_TEXT.LANGUAGE %s IN (%s) %s
 		AND ITEM_STATUS_TYPE.ITEM_STATUS_TYPE ='22'
 		AND princetondb.GETBIBSUBFIELD(BIB_TEXT.BIB_ID, '902','a') is null
 		AND MFHD_MASTER.NORMALIZED_CALL_NO is null %s
 		AND BIB_MASTER.SUPPRESS_IN_OPAC = 'N'
 		AND LOCATION.LOCATION_ID in (%s)
-		ORDER BY BIB_TEXT.LANGUAGE, ITEM_STATUS.ITEM_ID""" % (place, vendor, parens, vendors, langs, isbn, items,locs)
+		ORDER BY BIB_TEXT.LANGUAGE, ITEM_STATUS.ITEM_ID""" % (place, vendor, parens, vendors, lang_cond, langs, isbn, items,locs)
 
 	DSN = cx_Oracle.makedsn(HOST,PORT,SID)	
 	oradb = cx_Oracle.connect(USER,PASS,DSN)
@@ -215,6 +220,7 @@ def ping_worldcat(hold):
 			callno = ''
 			lit = ''
 			elvi = ''
+			erec = ''
 			lang = ''
 			oclcnum = ''
 			guess = ''
@@ -303,14 +309,14 @@ def ping_worldcat(hold):
 							field090 = tree.xpath("//marcxml:datafield/@tag='090'",namespaces=NS) # 090 - shelf location
 							field6xx = tree.xpath("//marcxml:datafield/@tag[starts-with(.,'6')]",namespaces=NS) #600, 610, 611, 65[^3] - subjects
 							field6xx = any(x in ['600', '610', '611','650','651','654','655','656','677','658'] for x in field6xx)
-							elvi = ldr[0][17:18]
-							lit = field008[0][34:35]
+							elvi = ldr[0][17]
+							lit = field008[0][33]
 							lang = field008[0][35:38]
+							erec = field008[0][23] # s or o?
 							oclcnum = field001[0]
 							callno = tree.xpath("//marcxml:datafield[@tag='050']/marcxml:subfield[@code='a']/text()",namespaces=NS)
 							callno += tree.xpath("//marcxml:datafield[@tag='090']/marcxml:subfield[@code='a']/text()",namespaces=NS)
 							callno = '|'.join(callno)
-							
 							# from member copy cat policy checklist, possibly include later...
 							#date = field008[0]
 							#place = field008[0]
@@ -318,9 +324,9 @@ def ping_worldcat(hold):
 							#field245
 							#field250
 							#field260/264
-	
+
 							# member copy?
-							if (field050 == True or field090 == True) and (field6xx == True or (lit != '0' or lit != ' ')):
+							if (field050 == True or field090 == True) and (field6xx == True or (lit != '0' or lit != ' ')) and (erec not in ['s','o']):
 								ismember = True
 								guess = 'member'
 							else:
@@ -339,7 +345,6 @@ def ping_worldcat(hold):
 								lc = '050 00'
 							else:
 								lc = 'no'
-						
 						else:
 							guess = 'not found in oclc'
 								
@@ -371,7 +376,8 @@ def ping_worldcat(hold):
 					callno = str(row['callno'])
 					lc = str(row['lc_copy'])
 					pcc = str(row['pcc'])
-			
+
+			print('>>>>>>>>>>', guess)
 			# write results of query to the new csv. NOTE: the ="" is to get around Excel's number formatting issues.
 			row = (vlang, itemid, bibid, '="'+isbn+'"', '="'+oclcnum+'"', elvi, ti, callno, loc, created, lc, pcc)
 			if hold == 'latin_american': 
@@ -502,6 +508,7 @@ def make_html():
 	
 	body += """
 	<p><a href="./data/arabic.csv">Arabic</a> <span id="spark_ara"></span></p>
+	<p><a href="./data/art.csv">Art</a> <span id="spark_art"></span></p>
 	<p><a href="./data/cjk_art.csv">CJK Art</a> <span id="spark_cjk_art"></span></p>
 	<p><a href="./data/cyrillic.csv">Cyrillic</a> <span id="spark_cyr"></span></p>
 	<p><a href="./data/greek.csv">Greek</a> <span id="spark_gre"></span></p>
@@ -574,6 +581,9 @@ d3.csv('./summaries/greek.csv', function(error, data) {
 d3.csv('./summaries/cjk_art.csv', function(error, data) {
   sparkline('#spark_cjk_art', data);
 });
+d3.csv('./summaries/art.csv', function(error, data) {
+  sparkline('#spark_art', data);
+});
 d3.csv('./summaries/hebrew.csv', function(error, data) {
   sparkline('#spark_heb', data);
 });
@@ -604,7 +614,7 @@ if __name__ == "__main__":
 	#main('latin_american',query,ping)
 	
 	## loop through all holds
-	holds = ['arabic','cyrillic','greek','hebrew','latin_american','persian','roman', 'turkish','cjk_art']
+	holds = ['arabic','cyrillic','greek','hebrew','latin_american','persian','roman', 'turkish','cjk_art','art']
 	
 	for h in holds:
 		main(h, query, ping)
