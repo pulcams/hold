@@ -54,15 +54,17 @@
 	<h3>Variations</h3>
 	<p>Reports are arrived at by querying both Voyager (V) and WorldCat (WC). There are slight variations per report...</p>
 	<table class="table table-bordered table-condensed table-striped">
-		<thead><tr><td>report</td><td>language(s) (V)</td><td>must have isbn (V)</td><td>encoding level (WC)</td><td>SA locations (V)</td></tr></thead>
-		<tbody><tr><td>Arabic</td><td>ara</td><td>yes</td><td>IL4_</td><td>no</td></tr>
-		<tr><td>Cyrillic</td><td>rus,aze,bul,ukr</td><td>yes</td><td>all</td><td>yes</td></tr>
-		<tr><td>Greek</td><td>grc,gre</td><td>yes</td><td>all but full</td><td>no</td></tr>
-		<tr><td>Hebrew</td><td>heb</td><td>yes</td><td>all</td><td>no</td></tr>
-		<tr><td>Latin American</td><td>spa,por,cat</td><td>no</td><td>all</td><td>no</td></tr>
-		<tr><td>Persian</td><td>per</td><td>no</td><td>all</td><td>no</td></tr>
-		<tr><td>Roman</td><td>eng,fre,ger,ita,dut,rum,lat</td><td>yes</td><td>all</td><td>no</td></tr>
-		<tr><td>Turkish</td><td>tur</td><td>yes</td><td>all</td><td>no</td></tr></tbody>
+		<thead><tr><td>report</td><td>language(s) (V)</td><td>must have isbn (V)</td><td>encoding level (WC)</td><td>SA locations (V)</td><td>UES locations (V)</td></tr></thead>
+		<tbody><tr><td>Arabic</td><td>ara</td><td>yes</td><td>IL4_</td><td>no</td><td>no</td></tr>
+		<tr><td>Art</td><td>NOT chi,jpn,kor</td><td>yes</td><td>all</td><td>yes</td><td>yes</td></tr>
+		<tr><td>CJK Art</td><td>chi,jpn,kor</td><td>yes</td><td>all</td><td>yes</td><td>no</td></tr>
+		<tr><td>Cyrillic</td><td>rus,aze,bul,ukr</td><td>yes</td><td>all</td><td>yes</td><td>yes</td></tr>
+		<tr><td>Greek</td><td>grc,gre</td><td>yes</td><td>all but full</td><td>no</td><td>no</td></tr>
+		<tr><td>Hebrew</td><td>heb</td><td>yes</td><td>all</td><td>no</td><td>no</td></tr>
+		<tr><td>Latin American</td><td>spa,por,cat</td><td>no</td><td>all</td><td>no</td><td>no</td></tr>
+		<tr><td>Persian</td><td>per</td><td>no</td><td>all</td><td>no</td><td>no</td></tr>
+		<tr><td>Roman</td><td>eng,fre,ger,ita,dut,rum,lat</td><td>yes</td><td>all</td><td>no</td><td>no</td></tr>
+		<tr><td>Turkish</td><td>tur</td><td>yes</td><td>all</td><td>no</td><td>no</td></tr></tbody>
 	</table>
   <h3>Common checks</h3>
    <p>For all reports...</p>
@@ -81,11 +83,13 @@
 <li>008/35-37 - language</li>
 <li>008/33 - literary form</li>
 <li>001 - OCLC number</li>
-<li>042$a - authentication code</li>
-<li>050_ _ - LC call number</li>
+<li>042$a - authentication code (pcc column)</li>
+<li>050_ _ - LC call number (lc column)</li>
 <li>090 - shelf location</li>
 <li>600, 610, 611, 65X other than 653 - subjects</li>
 </ul>
+<h3>Note</h3>
+<p>By default, a given record is checked against WorldCat every 30 days. This is for the sake of efficiency and good relations with our friends at OCLC.</p>
  </div>
 </body>
 </html>
