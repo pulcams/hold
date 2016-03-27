@@ -326,9 +326,9 @@ def ping_worldcat(hold):
 							#field260/264
 
 							#Test call nos for 0-9
-							if not re.search('[0-9]',field050):
+							if not re.search('[a-z0-9]',field050,re.IGNORECASE):
 								field050 = False
-							if not re.search('[0-9]',field090):
+							if not re.search('[a-z0-9]',field090,re.IGNORECASE):
 								field090 = False
 
 							# member copy?
