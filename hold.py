@@ -302,9 +302,9 @@ def ping_worldcat(hold):
 							ldr = tree.xpath("//marcxml:leader/text()",namespaces=NS)
 							field008 = tree.xpath("//marcxml:controlfield[@tag='008']/text()",namespaces=NS)
 							field001 = tree.xpath("//marcxml:controlfield[@tag='001']/text()",namespaces=NS)
-							field050_ind1 = tree.xpath("//marcxml:datafield[@tag='050']/@ind1='0'",namespaces=NS) # 0500 _ - LC call number ind1
-							field050_ind2 = tree.xpath("//marcxml:datafield[@tag='050']/@ind2='0'",namespaces=NS) # 050_ 0 - LC call number ind2
-							field050 = tree.xpath("//marcxml:datafield/@tag='050'",namespaces=NS) # 050 - simply tests for existence of 050, if we need to test for LC copy, see the commented-out line above
+							field050_ind1 = tree.xpath("//marcxml:datafield[@tag='050']/@ind1='0'",namespaces=NS) # 050 0_ - LC call number ind1
+							field050_ind2 = tree.xpath("//marcxml:datafield[@tag='050']/@ind2='0'",namespaces=NS) # 050 _0 - LC call number ind2
+							field050 = tree.xpath("//marcxml:datafield/@tag='050'",namespaces=NS) # 050 - simply tests for existence of 050
 							field042 = tree.xpath("//marcxml:datafield[@tag='042']/marcxml:subfield[@code='a']/text()",namespaces=NS) # 042$a - authentication code
 							field090 = tree.xpath("//marcxml:datafield/@tag='090'",namespaces=NS) # 090 - shelf location
 							field6xx = tree.xpath("//marcxml:datafield/@tag[starts-with(.,'6')]",namespaces=NS) #600, 610, 611, 65[^3] - subjects
@@ -324,6 +324,12 @@ def ping_worldcat(hold):
 							#field245
 							#field250
 							#field260/264
+
+							#Test call nos for 0-9
+							if not re.search('[0-9]',field050):
+								field050 = False
+							if not re.search('[0-9]',field090):
+								field090 = False
 
 							# member copy?
 							if (field050 == True or field090 == True) and (field6xx == True or (lit != '0' or lit != ' ')) and (erec not in ['s','o']):
