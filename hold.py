@@ -38,8 +38,8 @@ from lxml import etree
 
 # config
 config = ConfigParser.RawConfigParser()
-#config.read('./config/hold_local.cfg') # <= local for debugging
-config.read('/var/www/hold/config/hold.cfg') # <= production
+config.read('./config/hold_local.cfg') # <= local for debugging
+#config.read('/var/www/hold/config/hold.cfg') # <= production
 
 USER = config.get('vger', 'user')
 PASS = config.get('vger', 'pw')
@@ -226,6 +226,8 @@ def ping_worldcat(hold):
 			guess = ''
 			isbn = ''
 			field042 = ''
+			field050_value = ''
+			field090_value = ''
 			field050 = False
 			field090 = False
 			field6xx = False
@@ -305,8 +307,12 @@ def ping_worldcat(hold):
 							field050_ind1 = tree.xpath("//marcxml:datafield[@tag='050']/@ind1='0'",namespaces=NS) # 050 0_ - LC call number ind1
 							field050_ind2 = tree.xpath("//marcxml:datafield[@tag='050']/@ind2='0'",namespaces=NS) # 050 _0 - LC call number ind2
 							field050 = tree.xpath("//marcxml:datafield/@tag='050'",namespaces=NS) # 050 - simply tests for existence of 050
+							field050a_value = tree.xpath("//marcxml:datafield[@tag='050']/marcxml:subfield[@code='a']/text()",namespaces=NS)
+							field050b_value = tree.xpath("//marcxml:datafield[@tag='050']/marcxml:subfield[@code='b']/text()",namespaces=NS)
 							field042 = tree.xpath("//marcxml:datafield[@tag='042']/marcxml:subfield[@code='a']/text()",namespaces=NS) # 042$a - authentication code
 							field090 = tree.xpath("//marcxml:datafield/@tag='090'",namespaces=NS) # 090 - shelf location
+							field090a_value = tree.xpath("//marcxml:datafield[@tag='090']/marcxml:subfield[1]/text()",namespaces=NS)
+							field090b_value = tree.xpath("//marcxml:datafield[@tag='090']/marcxml:subfield[2]/text()",namespaces=NS)
 							field6xx = tree.xpath("//marcxml:datafield/@tag[starts-with(.,'6')]",namespaces=NS) #600, 610, 611, 65[^3] - subjects
 							field6xx = any(x in ['600', '610', '611','650','651','654','655','656','677','658'] for x in field6xx)
 							elvi = ldr[0][17]
@@ -325,11 +331,16 @@ def ping_worldcat(hold):
 							#field250
 							#field260/264
 
+							field050_value = field050a_value + field050b_value
+							field050_value = field090a_value + field090b_value
+
 							#Test call nos for 0-9
-							if not re.search('[a-z0-9]',field050,re.IGNORECASE):
-								field050 = False
-							if not re.search('[a-z0-9]',field090,re.IGNORECASE):
-								field090 = False
+							if len(field050_value) > 0:
+								if not re.search('[a-z0-9]',field050_value[0],re.IGNORECASE):
+									field050 = False
+							if len(field090_value) > 0:
+								if not re.search('[a-z0-9]',field090_value[0],re.IGNORECASE):
+									field090 = False
 
 							# member copy?
 							if (field050 == True or field090 == True) and (field6xx == True or (lit != '0' or lit != ' ')) and (erec not in ['s','o']):
@@ -383,9 +394,9 @@ def ping_worldcat(hold):
 					lc = str(row['lc_copy'])
 					pcc = str(row['pcc'])
 
-			print('>>>>>>>>>>', guess)
+			#print('>>>>>>>>>>', guess)
 			# write results of query to the new csv. NOTE: the ="" is to get around Excel's number formatting issues.
-			row = (vlang, itemid, bibid, '="'+isbn+'"', '="'+oclcnum+'"', elvi, ti, callno, loc, created, lc, pcc)
+			row = (lang, itemid, bibid, '="'+isbn+'"', '="'+oclcnum+'"', elvi, ti, callno, loc, created, lc, pcc)
 			if hold == 'latin_american': 
 				# extra fields for latin_american
 				r = list(row)
