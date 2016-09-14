@@ -38,8 +38,8 @@ from lxml import etree
 
 # config
 config = ConfigParser.RawConfigParser()
-config.read('./config/hold_local.cfg') # <= local for debugging
-#config.read('/var/www/hold/config/hold.cfg') # <= production
+#config.read('./config/hold_local.cfg') # <= local for debugging
+config.read('/var/www/hold/config/hold.cfg') # <= production
 
 USER = config.get('vger', 'user')
 PASS = config.get('vger', 'pw')
@@ -226,6 +226,7 @@ def ping_worldcat(hold):
 			guess = ''
 			isbn = ''
 			field042 = ''
+			field040b = ''
 			field050_value = ''
 			field090_value = ''
 			field050 = False
@@ -304,6 +305,7 @@ def ping_worldcat(hold):
 							ldr = tree.xpath("//marcxml:leader/text()",namespaces=NS)
 							field008 = tree.xpath("//marcxml:controlfield[@tag='008']/text()",namespaces=NS)
 							field001 = tree.xpath("//marcxml:controlfield[@tag='001']/text()",namespaces=NS)
+							field040b = tree.xpath("//marcxml:controlfield[@tag='040']/marcxml:subfield[@code='b']/text()",namespaces=NS)
 							field050_ind1 = tree.xpath("//marcxml:datafield[@tag='050']/@ind1='0'",namespaces=NS) # 050 0_ - LC call number ind1
 							field050_ind2 = tree.xpath("//marcxml:datafield[@tag='050']/@ind2='0'",namespaces=NS) # 050 _0 - LC call number ind2
 							field050 = tree.xpath("//marcxml:datafield/@tag='050'",namespaces=NS) # 050 - simply tests for existence of 050
@@ -313,8 +315,8 @@ def ping_worldcat(hold):
 							field090 = tree.xpath("//marcxml:datafield/@tag='090'",namespaces=NS) # 090 - shelf location
 							field090a_value = tree.xpath("//marcxml:datafield[@tag='090']/marcxml:subfield[1]/text()",namespaces=NS)
 							field090b_value = tree.xpath("//marcxml:datafield[@tag='090']/marcxml:subfield[2]/text()",namespaces=NS)
-							field6xx = tree.xpath("//marcxml:datafield/@tag[starts-with(.,'6')]",namespaces=NS) #600, 610, 611, 65[^3] - subjects
-							field6xx = any(x in ['600', '610', '611','650','651','654','655','656','677','658'] for x in field6xx)
+							field6xx_all = tree.xpath("//marcxml:datafield/@tag[starts-with(.,'6')]",namespaces=NS) #600, 610, 611, 65[^3] - subjects
+							field6xx = any(x in ['600', '610', '611','650','651','654','655','656','677','658'] for x in field6xx_all)
 							elvi = ldr[0][17]
 							lit = field008[0][33]
 							lang = field008[0][35:38]
@@ -336,14 +338,14 @@ def ping_worldcat(hold):
 
 							#Test call nos for 0-9
 							if len(field050_value) > 0:
-								if not re.search('[a-z0-9]',field050_value[0],re.IGNORECASE):
+								if not re.search('[0-9]',field050_value[0],re.IGNORECASE):
 									field050 = False
 							if len(field090_value) > 0:
-								if not re.search('[a-z0-9]',field090_value[0],re.IGNORECASE):
+								if not re.search('[0-9]',field090_value[0],re.IGNORECASE):
 									field090 = False
-
+							print(field6xx,lit,field050,field090)
 							# member copy?
-							if (field050 == True or field090 == True) and (field6xx == True or (lit != '0' or lit != ' ')) and (erec not in ['s','o']):
+							if (field050 == True or field090 == True) and (field6xx == True or (lit != '0' and lit != ' ')) and (erec not in ['s','o']):
 								ismember = True
 								guess = 'member'
 							else:
@@ -628,7 +630,7 @@ if __name__ == "__main__":
 	verbose = args['verbose']
 	
 	## one at a time
-	#main('latin_american',query,ping)
+	#main('roman',query,ping)
 	
 	## loop through all holds
 	holds = ['arabic','cyrillic','greek','hebrew','latin_american','persian','roman', 'turkish','cjk_art','art']
