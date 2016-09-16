@@ -297,7 +297,7 @@ def ping_worldcat(hold):
 					
 					if verbose:
 						print(url)
-					
+
 					if r.status_code == 200:
 						tree = etree.fromstring(r.content)
 						# NOTE: etree doesn't support XPath > 1.0 (!)
@@ -334,7 +334,7 @@ def ping_worldcat(hold):
 							#field260/264
 
 							field050_value = field050a_value + field050b_value
-							field050_value = field090a_value + field090b_value
+							field090_value = field090a_value + field090b_value
 
 							#Test call nos for 0-9
 							if len(field050_value) > 0:
@@ -343,7 +343,7 @@ def ping_worldcat(hold):
 							if len(field090_value) > 0:
 								if not re.search('[0-9]',field090_value[0],re.IGNORECASE):
 									field090 = False
-							print(field6xx,lit,field050,field090)
+									
 							# member copy?
 							if (field050 == True or field090 == True) and (field6xx == True or (lit != '0' and lit != ' ')) and (erec not in ['s','o']):
 								ismember = True
