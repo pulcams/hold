@@ -201,7 +201,7 @@ def ping_worldcat(hold):
 		firstline = reader.next()
 		
 		# output a new csv file (the downloadable report)
-		header = ['lang', 'item_id', 'bib_id', 'isbn', 'oclc num', 'elvi','title','callno','loc','item created','lc_copy','pcc']
+		header = ['lang','cat_lang','item_id', 'bib_id', 'isbn', 'oclc num', 'elvi','title','callno','loc','item created','lc_copy','pcc']
 		
 		if hold == 'latin_american':
 			header.append('place')
@@ -343,6 +343,10 @@ def ping_worldcat(hold):
 							if len(field090_value) > 0:
 								if not re.search('[0-9]',field090_value[0],re.IGNORECASE):
 									field090 = False
+
+							# lang of cataloging in 040$b
+							if len(field040b) = 0:
+								field040b = ''
 									
 							# member copy?
 							if (field050 == True or field090 == True) and (field6xx == True or (lit != '0' and lit != ' ')) and (erec not in ['s','o']):
@@ -397,8 +401,9 @@ def ping_worldcat(hold):
 					pcc = str(row['pcc'])
 
 			#print('>>>>>>>>>>', guess)
+			
 			# write results of query to the new csv. NOTE: the ="" is to get around Excel's number formatting issues.
-			row = (lang, itemid, bibid, '="'+isbn+'"', '="'+oclcnum+'"', elvi, ti, callno, loc, created, lc, pcc)
+			row = (lang,field040b,itemid, bibid, '="'+isbn+'"', '="'+oclcnum+'"', elvi, ti, callno, loc, created, lc, pcc)
 			if hold == 'latin_american': 
 				# extra fields for latin_american
 				r = list(row)
