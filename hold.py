@@ -38,7 +38,7 @@ from lxml import etree
 
 # config
 config = ConfigParser.RawConfigParser()
-#config.read('./config/hold_local.cfg') # <= local for debugging
+config.read('./config/hold_local.cfg') # <= local for debugging
 config.read('/var/www/hold/config/hold.cfg') # <= production
 
 USER = config.get('vger', 'user')
@@ -305,7 +305,7 @@ def ping_worldcat(hold):
 							ldr = tree.xpath("//marcxml:leader/text()",namespaces=NS)
 							field008 = tree.xpath("//marcxml:controlfield[@tag='008']/text()",namespaces=NS)
 							field001 = tree.xpath("//marcxml:controlfield[@tag='001']/text()",namespaces=NS)
-							field040b = tree.xpath("//marcxml:controlfield[@tag='040']/marcxml:subfield[@code='b']/text()",namespaces=NS)
+							field040b = tree.xpath("//marcxml:datafield[@tag='040']/marcxml:subfield[@code='b']/text()",namespaces=NS)
 							field050_ind1 = tree.xpath("//marcxml:datafield[@tag='050']/@ind1='0'",namespaces=NS) # 050 0_ - LC call number ind1
 							field050_ind2 = tree.xpath("//marcxml:datafield[@tag='050']/@ind2='0'",namespaces=NS) # 050 _0 - LC call number ind2
 							field050 = tree.xpath("//marcxml:datafield/@tag='050'",namespaces=NS) # 050 - simply tests for existence of 050
@@ -345,8 +345,10 @@ def ping_worldcat(hold):
 									field090 = False
 
 							# lang of cataloging in 040$b
-							if len(field040b) = 0:
+							if len(field040b) == 0:
 								field040b = ''
+							else:
+								field040b = ', '.join(field040b)
 									
 							# member copy?
 							if (field050 == True or field090 == True) and (field6xx == True or (lit != '0' and lit != ' ')) and (erec not in ['s','o']):
