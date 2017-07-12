@@ -398,7 +398,8 @@ def ping_worldcat(hold):
 					lang = str(row['lang'])
 					oclcnum = str(row['oclcnum'])
 					guess = str(row['guess'])
-					callno = str(row['callno'])
+					#callno = str(row['callno'])
+					callno = str(row['callno'].replace(u'\s\u2021\s','').encode('utf-8'))
 					lc = str(row['lc_copy'])
 					pcc = str(row['pcc'])
 
