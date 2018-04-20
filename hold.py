@@ -120,7 +120,7 @@ def query_vger(hold, firstitem=0, lastitem=0):
 	elif hold == 'persian':
 		langs = "'per'"
 	elif hold == 'cyrillic':
-		langs = "'rus', 'aze', 'bul', 'ukr'"
+		langs = "'rus', 'aze', 'bul', 'ukr', 'srp', 'bel', 'bos', 'cnr', 'geo'"
 		locs = locs + ',' + sa_locs + ',' + ues_loc
 	elif hold == 'greek':
 		langs = "'gre','grc'"
