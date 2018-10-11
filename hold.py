@@ -66,14 +66,14 @@ def main(hold, query=None, ping=None,  firstitem=0, lastitem=0):
 	"""
 
 	logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',filename=LOG+today+'.log',level=logging.INFO)
-	
+
 	# the following two lines disable the default logging of requests.get()
 	logging.getLogger("requests").setLevel(logging.WARNING)
 	logging.getLogger("urllib3").setLevel(logging.WARNING)
-		
+
 	logging.info('START ' + '-' * 20)
 	logging.info('hold: '+ hold)
-	
+
 	if query:
 		query_vger(hold, firstitem, lastitem)
 
@@ -285,7 +285,10 @@ def ping_worldcat(hold):
 					times = [1.5,2,2.25,2.5,3]
 					randomsnooze = random.choice(times)
 					connect_timeout = 7.0
-					url = "http://www.worldcat.org/webservices/catalog/content/isbn/"+isbn+"?servicelevel=full&wskey="+wskey
+					if hold == 'dvd':
+						url = "http://www.worldcat.org/webservices/catalog/content/sn/"+isbn+"?servicelevel=full&wskey="+wskey
+					else:
+						url = "http://www.worldcat.org/webservices/catalog/content/isbn/"+isbn+"?servicelevel=full&wskey="+wskey
 					
 					try:
 						r = requests.get(url,timeout=(connect_timeout))
@@ -361,7 +364,10 @@ def ping_worldcat(hold):
 								field040b = ', '.join(field040b)
 									
 							# member copy?
-							if (field050 == True or field090 == True) and (field6xx == True or (lit != '0' and lit != ' ')) and (erec not in ['s','o']):
+							if hold == 'dvd' and field6xx == True:
+								ismember = True
+								guess = 'member'
+							elif (field050 == True or field090 == True) and (field6xx == True or (lit != '0' and lit != ' ')) and (erec not in ['s','o']):
 								ismember = True
 								guess = 'member'
 							else:
