@@ -105,12 +105,14 @@ def query_vger(hold, firstitem=0, lastitem=0):
 	sa_locs = "'123','129','423'"
 	ues_loc = "'273'"
 	dvd_loc = "'465'"
+	latin_locs = "'13','520'"
 	
 	if hold == 'roman':
 		langs = "'eng','fre','ger','ita','dut','rum','lat'"
-	elif hold = 'latin':
+	elif hold == 'latin':
 		langs = "'eng','fre','ger','ita','dut','rum','lat'"
-		locs = "'clas','clasnc'"
+		locs = latin_locs
+		isbn = "AND (BIB_TEXT.ISBN = '' OR BIB_TEXT.ISBN is not null)"
 	elif hold == 'latin_american':
 		langs = "'spa','por','cat'"
 		#place = ", TRIM(REGEXP_REPLACE(BIB_TEXT.PUB_PLACE,':\s+\z','')) as PUB_PLACE"
@@ -446,7 +448,14 @@ def ping_worldcat(hold):
 					writer.writerow(row)
 			else: 
 				# ...for all other holds, just report likely member copy...
-				if guess == 'member':
+				if hold == 'latin':
+				    try:
+					with open(outfile,'ab+') as out:
+					    writer = csv.writer(out)
+					    writer.writerow(row)
+				    except:
+					pass
+				elif guess == 'member':
 					# ...and for Arabic, just certain encoding levels...
 					if ((hold != 'arabic') or (hold == 'arabic' and elvi in ['I','L','4',' '])):
 						try:
@@ -674,7 +683,7 @@ if __name__ == "__main__":
 	## loop through all holds
 	holds = ['arabic','cyrillic','greek','hebrew','persian','roman','turkish','cjk_art','art','dvd','latin_american','latin']
 	#holds = ['latin_american']
-	#holds = ['dvd']
+	#holds = ['latin']
 	
 	for h in holds:
 		main(h, query, ping)
