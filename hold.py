@@ -140,7 +140,7 @@ def query_vger(hold, firstitem=0, lastitem=0):
 	elif hold == 'art':
 		langs = "'chi','jpn','kor'"
 		lang_cond = 'NOT'
-		locs = sa_locs
+		locs = sa_locs + ',' + ues_loc
 	elif hold == 'dvd':
 		lang_cond = 'NOT'
 		langs = "'zzz'" # this is fake; this is the only query for all languages
