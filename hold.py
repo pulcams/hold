@@ -66,14 +66,14 @@ def main(hold, query=None, ping=None,  firstitem=0, lastitem=0):
 	"""
 
 	logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',filename=LOG+today+'.log',level=logging.INFO)
-
+	
 	# the following two lines disable the default logging of requests.get()
 	logging.getLogger("requests").setLevel(logging.WARNING)
 	logging.getLogger("urllib3").setLevel(logging.WARNING)
-
+		
 	logging.info('START ' + '-' * 20)
 	logging.info('hold: '+ hold)
-
+	
 	if query:
 		query_vger(hold, firstitem, lastitem)
 
@@ -108,6 +108,9 @@ def query_vger(hold, firstitem=0, lastitem=0):
 	
 	if hold == 'roman':
 		langs = "'eng','fre','ger','ita','dut','rum','lat'"
+	elif hold = 'latin':
+		langs = "'eng','fre','ger','ita','dut','rum','lat'"
+		locs = "'clas','clasnc'"
 	elif hold == 'latin_american':
 		langs = "'spa','por','cat'"
 		#place = ", TRIM(REGEXP_REPLACE(BIB_TEXT.PUB_PLACE,':\s+\z','')) as PUB_PLACE"
@@ -139,15 +142,14 @@ def query_vger(hold, firstitem=0, lastitem=0):
 	elif hold == 'dvd':
 		lang_cond = 'NOT'
 		langs = "'zzz'" # this is fake; this is the only query for all languages
-		format_cond = "AND BIB_FORMAT like 'g%%'"
-		locs = locs + dvd_locs
+		format_cond = "AND BIB_FORMAT like 'g%'"
+		locs = locs + "," + dvd_loc
 		
 	if firstitem > 0 or lastitem > 0:
 		items = "AND ITEM_STATUS.ITEM_ID between '%s' and '%s'" % (firstitem,lastitem)
 	else:
 		items = ""
-
-	# changing from SUBSTR(BIB_TEXT.TITLE_BRIEF,1,25) to BIB_TEXT.TITLE_BRIEF 20180726 pmg
+	
 	query = """SELECT BIB_TEXT.LANGUAGE, ITEM_STATUS.ITEM_ID, BIB_TEXT.BIB_ID, REGEXP_REPLACE(BIB_TEXT.ISBN,'\s.*','') AS ISBN, BIB_TEXT.TITLE_BRIEF, LOCATION.LOCATION_NAME,
 		ITEM.CREATE_DATE %s%s%s 
 		FROM 
@@ -161,14 +163,14 @@ def query_vger(hold, firstitem=0, lastitem=0):
 		INNER JOIN ITEM_STATUS_TYPE ON ITEM_STATUS.ITEM_STATUS = ITEM_STATUS_TYPE.ITEM_STATUS_TYPE) 
 		INNER JOIN LOCATION ON MFHD_MASTER.LOCATION_ID = LOCATION.LOCATION_ID
 		WHERE 
-		BIB_TEXT.LANGUAGE %s IN (%s) %s %s
+		BIB_TEXT.LANGUAGE %s IN (%s) %s
 		AND ITEM_STATUS_TYPE.ITEM_STATUS_TYPE ='22'
 		AND princetondb.GETBIBSUBFIELD(BIB_TEXT.BIB_ID, '902','a') is null
 		AND MFHD_MASTER.NORMALIZED_CALL_NO is null %s
 		AND BIB_MASTER.SUPPRESS_IN_OPAC = 'N'
-		AND LOCATION.LOCATION_ID in (%s)
-		%
+		AND LOCATION.LOCATION_ID in (%s) %s
 		ORDER BY BIB_TEXT.LANGUAGE, ITEM_STATUS.ITEM_ID""" % (place, vendor, bib_format, parens, vendors, lang_cond, langs, isbn, items, locs, format_cond)
+	print(query)
 	DSN = cx_Oracle.makedsn(HOST,PORT,SID)
 	oradb = cx_Oracle.connect(USER,PASS,DSN)
 		
@@ -277,7 +279,6 @@ def ping_worldcat(hold):
 				date2 = datetime.strptime(todaydb,'%Y-%m-%d')
 				date1 = datetime.strptime(str(cached_date),'%Y-%m-%d')
 				datediff = abs((date2 - date1).days)
-				
 			# check cache -- don't ping worldcat unless we have to
 			if cached_date is None or datediff >= maxage:
 			#if isbn is not None and isbn != '' and isbn !=':': # <= for debugging
@@ -327,8 +328,11 @@ def ping_worldcat(hold):
 							field090 = tree.xpath("//marcxml:datafield/@tag='090'",namespaces=NS) # 090 - shelf location
 							field090a_value = tree.xpath("//marcxml:datafield[@tag='090']/marcxml:subfield[1]/text()",namespaces=NS)
 							field090b_value = tree.xpath("//marcxml:datafield[@tag='090']/marcxml:subfield[2]/text()",namespaces=NS)
-							field6xx_all = tree.xpath("//marcxml:datafield/@tag[starts-with(.,'6')]",namespaces=NS) #600, 610, 611, 65[^3] - subjects
+							field6xx_all = tree.xpath("//marcxml:datafield/@tag[starts-with(.,'6')]",namespaces=NS)
+							field6xx_ind2_all = tree.xpath("//marcxml:datafield[@tag[starts-with(.,'6')]]/@ind2",namespaces=NS)
+							#600, 610, 611, 65[^3] - subjects
 							field6xx = any(x in ['600', '610', '611','650','651','654','655','656','677','658'] for x in field6xx_all)
+							field6xx_ind2 = any(x in ['0'] for x in field6xx_ind2_all)
 							elvi = ldr[0][17]
 							bib_format = ldr[0][6]
 							lit = field008[0][33]
@@ -364,7 +368,7 @@ def ping_worldcat(hold):
 								field040b = ', '.join(field040b)
 									
 							# member copy?
-							if hold == 'dvd' and field6xx == True:
+							if hold == 'dvd' and field6xx == True and field6xx_ind2 == True:
 								ismember = True
 								guess = 'member'
 							elif (field050 == True or field090 == True) and (field6xx == True or (lit != '0' and lit != ' ')) and (erec not in ['s','o']):
@@ -445,13 +449,12 @@ def ping_worldcat(hold):
 				if guess == 'member':
 					# ...and for Arabic, just certain encoding levels...
 					if ((hold != 'arabic') or (hold == 'arabic' and elvi in ['I','L','4',' '])):
+						try:
 							with open(outfile,'ab+') as out:
 								writer = csv.writer(out)
-								try:
-									writer.writerow(row)
-								except:
-									e = sys.exc_info()[0]
-									writer.writerow('','',itemid,e,'','','','','','','','','')
+								writer.writerow(row)
+						except:
+							pass
 	if con:
 		con.close()
 
@@ -560,6 +563,7 @@ def make_html():
 	<p><a href="./data/cyrillic.csv">Cyrillic</a> <span id="spark_cyr"></span></p>
 	<p><a href="./data/greek.csv">Greek</a> <span id="spark_gre"></span></p>
 	<p><a href="./data/hebrew.csv">Hebrew</a> <span id="spark_heb"></span></p>
+	<p><a href="./data/latin.csv">Latin</a> <span id="spark_latin"></span></p>
 	<p><a href="./data/latin_american.csv">Latin American</a> <span id="spark_spa"></span></p>
 	<p><a href="./data/persian.csv">Persian</a> <span id="spark_per"></span></p>
 	<p><a href="./data/roman.csv">Roman</a> <span id="spark_roman"></span></p>
@@ -607,6 +611,9 @@ function sparkline(elemId, data) {
 
 d3.csv('./summaries/roman.csv', function(error, data) {
   sparkline('#spark_roman', data);
+});
+d3.csv('./summaries/latin.csv', function(error, data) {
+  sparkline('#spark_latin', data);
 });
 d3.csv('./summaries/latin_american.csv', function(error, data) {
   sparkline('#spark_spa', data);
@@ -665,8 +672,9 @@ if __name__ == "__main__":
 	#main('roman',query,ping)
 	
 	## loop through all holds
-	holds = ['arabic','cyrillic','greek','hebrew','latin_american','persian','roman', 'turkish','cjk_art','art','dvd']
+	holds = ['arabic','cyrillic','greek','hebrew','persian','roman','turkish','cjk_art','art','dvd','latin_american','latin']
+	#holds = ['latin_american']
+	#holds = ['dvd']
 	
 	for h in holds:
 		main(h, query, ping)
-
