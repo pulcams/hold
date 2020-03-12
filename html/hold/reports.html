@@ -1,0 +1,159 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+	  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>Low-hanging fruits</title>
+  <meta name="description" content="Hold stuff">
+  <link rel="stylesheet" href="css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+  <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+  <style>
+  img.thumb {
+	   border:1px solid #ccc;
+  }
+  ul {
+	 list-style-type:none; 
+  }
+	.sparkline {
+  fill: none;
+  stroke: #666;
+  stroke-width: 0.5px;
+}
+.sparkcircle {
+  fill: #FF5050;
+  stroke: none;
+}
+  body { 
+  padding-top: 70px; 
+}
+  </style>
+	</head>
+	<body>
+	
+	<div class="container">
+	<!-- sparklines code STOLEN! from here http://www.tnoda.com/blog/2013-12-19 -->
+	<div class="container">
+	 <!-- Static navbar -->
+      <nav class="navbar navbar-default navbar-fixed-top">
+        <div class="container">
+          <div class="navbar-header">
+         
+            <a class="navbar-brand" href="index.html">The Holds</a>
+          </div>
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav">
+              <li><a href="reports.html">Picklists</a></li>
+              <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Stats <span class="caret"></span></a>
+                <ul class="dropdown-menu">
+			      <li class="dropdown-header">Weekly</li>
+                  <li><a href="treemap.html">Treemap</a></li>
+                  <li role="separator" class="divider"></li>
+                  <li class="dropdown-header">Quarterly</li>
+                  <li><a href="multiples.html">Small multiples</a></li>
+                  <li><a href="stacked.html">Stacked area chart</a></li>
+                </ul>
+              </li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div><!--/.container-fluid -->
+      </nav>
+      
+	<p><img src='images/apple-web.jpg' alt='fresh apple' width="25px" height="40px" style="margin-right:10px;"/> Low-hanging fruit, ripe for the picking. Freshness date: 09/20/2019. <a href="about.html">about</a></p>
+	<p><a href="./data/arabic.csv">Arabic</a> <span id="spark_ara"></span></p>
+	<p><a href="./data/art.csv">Art</a> <span id="spark_art"></span></p>
+	<p><a href="./data/cjk.csv">CJK</a> <span id="spark_cjk"></span></p>
+	<p><a href="./data/cjk_art.csv">CJK Art</a> <span id="spark_cjk_art"></span></p>
+	<p><a href="./data/cyrillic.csv">Cyrillic</a> <span id="spark_cyr"></span></p>
+	<p><a href="./data/greek.csv">Greek</a> <span id="spark_gre"></span></p>
+	<p><a href="./data/hebrew.csv">Hebrew</a> <span id="spark_heb"></span></p>
+	<p><a href="./data/latin.csv">Latin (clas, clasn)</a> <span id="spark_latin"></span></p>
+	<p><a href="./data/latin_american.csv">Latin American</a> <span id="spark_spa"></span></p>
+	<p><a href="./data/persian.csv">Persian</a> <span id="spark_per"></span></p>
+	<p><a href="./data/roman.csv">Roman</a> <span id="spark_roman"></span></p>
+	<p><a href="./data/turkish.csv">Turkish</a> <span id="spark_tur"></span></p>
+	<p><a href="./data/dvd.csv">DVDs</a> <span id="spark_dvd"></span></p>
+	<p><a href="https://docs.google.com/a/princeton.edu/forms/d/18SPb-XvSLPRxt5O2XIW4qhJpFivg9v_84wmu6B1RNUw/viewform" target="_BLANK">Custom report</a> (Google sign-in)</p>
+	<sub>Sparklines (<span id="spark_sample"></span>) indicate trends in these reports since 09/01/15. For the bigger picture, look under Stats.</sub>
+	</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+<script>
+var width = 40;
+var height = 10;
+var x = d3.scale.linear().range([0, width - 2]);
+var y = d3.scale.linear().range([height - 4, 0]);
+var parseDate = d3.time.format("%Y%m%d").parse;
+var line = d3.svg.line()
+             .interpolate("basis")
+             .x(function(d) { return x(d.date); })
+             .y(function(d) { return y(d.count); });
+
+function sparkline(elemId, data) {
+  data.forEach(function(d) {
+    d.date = parseDate(d.Date);
+    d.count = +d.Count;
+  });
+  x.domain(d3.extent(data, function(d) { return d.date; }));
+  y.domain(d3.extent(data, function(d) { return d.count; }));
+
+  var svg = d3.select(elemId)
+              .append('svg')
+              .attr('width', width)
+              .attr('height', height)
+              .append('g')
+              .attr('transform', 'translate(0, 2)');
+  svg.append('path')
+     .datum(data)
+     .attr('class', 'sparkline')
+     .attr('d', line);
+  svg.append('circle')
+     .attr('class', 'sparkcircle')
+     .attr('cx', x(data[data.length - 1].date))
+     .attr('cy', y(data[data.length - 1].count))
+     .attr('r', 1.5);  
+}
+
+d3.csv('./summaries/roman.csv', function(error, data) {
+  sparkline('#spark_roman', data);
+});
+d3.csv('./summaries/latin_american.csv', function(error, data) {
+  sparkline('#spark_spa', data);
+});
+d3.csv('./summaries/arabic.csv', function(error, data) {
+  sparkline('#spark_ara', data);
+});
+d3.csv('./summaries/turkish.csv', function(error, data) {
+  sparkline('#spark_tur', data);
+});
+d3.csv('./summaries/dvd.csv', function(error, data) {
+  sparkline('#spark_dvd', data);
+});
+d3.csv('./summaries/cyrillic.csv', function(error, data) {
+  sparkline('#spark_cyr', data);
+});
+d3.csv('./summaries/persian.csv', function(error, data) {
+  sparkline('#spark_per', data);
+});
+d3.csv('./summaries/greek.csv', function(error, data) {
+  sparkline('#spark_gre', data);
+});
+d3.csv('./summaries/cjk_art.csv', function(error, data) {
+  sparkline('#spark_cjk_art', data);
+});
+d3.csv('./summaries/cjk.csv', function(error, data) {
+  sparkline('#spark_cjk', data);
+});
+d3.csv('./summaries/art.csv', function(error, data) {
+  sparkline('#spark_art', data);
+});
+d3.csv('./summaries/hebrew.csv', function(error, data) {
+  sparkline('#spark_heb', data);
+});
+d3.csv('./summaries/sample.csv', function(error, data) {
+  sparkline('#spark_sample', data);
+});
+</script>
+</body>
+</html>
+	

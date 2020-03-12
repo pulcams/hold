@@ -106,6 +106,7 @@ def query_vger(hold, firstitem=0, lastitem=0):
 	ues_loc = "'273'"
 	dvd_loc = "'465'"
 	latin_locs = "'13','520'"
+	cjk_locs = "'419','392'"
 	
 	if hold == 'roman':
 		langs = "'eng','fre','ger','ita','dut','rum','lat'"
@@ -137,10 +138,13 @@ def query_vger(hold, firstitem=0, lastitem=0):
 	elif hold == 'cjk_art':
 		langs = "'chi','jpn','kor'"
 		locs = sa_locs + ',' + ues_loc
+	elif hold == 'cjk':
+		langs = "'chi','jpn'"
+		locs = cjk_locs
 	elif hold == 'art':
 		langs = "'chi','jpn','kor'"
 		lang_cond = 'NOT'
-		locs = sa_locs + ',' + ues_loc
+		locs = sa_locs + "," + ues_loc
 	elif hold == 'dvd':
 		lang_cond = 'NOT'
 		langs = "'zzz'" # this is fake; this is the only query for all languages
@@ -568,6 +572,7 @@ def make_html():
 	body += """
 	<p><a href="./data/arabic.csv">Arabic</a> <span id="spark_ara"></span></p>
 	<p><a href="./data/art.csv">Art</a> <span id="spark_art"></span></p>
+	<p><a href="./data/cjk.csv">CJK</a> <span id="spark_cjk"></span></p>
 	<p><a href="./data/cjk_art.csv">CJK Art</a> <span id="spark_cjk_art"></span></p>
 	<p><a href="./data/cyrillic.csv">Cyrillic</a> <span id="spark_cyr"></span></p>
 	<p><a href="./data/greek.csv">Greek</a> <span id="spark_gre"></span></p>
@@ -645,6 +650,9 @@ d3.csv('./summaries/persian.csv', function(error, data) {
 d3.csv('./summaries/greek.csv', function(error, data) {
   sparkline('#spark_gre', data);
 });
+d3.csv('./summaries/cjk.csv', function(error, data) {
+  sparkline('#spark_cjk', data);
+});
 d3.csv('./summaries/cjk_art.csv', function(error, data) {
   sparkline('#spark_cjk_art', data);
 });
@@ -681,7 +689,7 @@ if __name__ == "__main__":
 	#main('roman',query,ping)
 	
 	## loop through all holds
-	holds = ['arabic','cyrillic','greek','hebrew','persian','roman','turkish','cjk_art','art','dvd','latin_american','latin']
+	holds = ['arabic','cyrillic','greek','hebrew','persian','roman','turkish','cjk_art','art','dvd','latin_american','latin', 'cjk']
 	#holds = ['latin_american']
 	#holds = ['latin']
 	
