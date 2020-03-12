@@ -14,9 +14,9 @@ import os
 import time
 import cx_Oracle
 
-config = ConfigParser.RawConfigParser()
-config.read('/var/www/hold/config/hold.cfg') # <= "production"
-#config.read('./config/hold_local.cfg') # <= local
+config = ConfigParser.RawConfigParser()#
+#config.read('/var/www/hold/config/hold.cfg') # <= "production"
+config.read('./config/hold_local.cfg') # <= local
 user = config.get('vger', 'user')
 pw = config.get('vger', 'pw')
 port = config.get('vger', 'port')
@@ -160,6 +160,7 @@ def make_html():
 		lang = row[0]
 		count = row[1]
 		age = row[6]
+		age = str(int(age)/365)
 		maxdate = str.replace(str(row[7]),' 00:00:00','')
 		if lang == 'ara':
 			group = "Arabic"
