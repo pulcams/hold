@@ -100,7 +100,7 @@ def query_vger(hold, firstitem=0, lastitem=0):
 	vendors = "" # ditto (the joins)
 	bib_format = ', BIB_TEXT.BIB_FORMAT'
 	format_cond = ''
-	isbn = "AND REGEXP_REPLACE(BIB_TEXT.ISBN,'\s.*','') is not null" # only include null isbn for latin_american
+	isbn = "AND REGEXP_REPLACE(BIB_TEXT.ISBN,'\s.*','') is not null" # only include null isbn for latin_american and hebrew
 	locs = "'6','7','13','20','21','22','24','46','84','96','138','140','142','144','163','165','171','195','197','204','214','217','221','229','250','281','287','372','419','444','446','448','450','468','492','523'"
 	sa_locs = "'123','129','423'"
 	ues_loc = "'273'"
@@ -135,6 +135,7 @@ def query_vger(hold, firstitem=0, lastitem=0):
 		langs = "'gre','grc'"
 	elif hold == 'hebrew':
 		langs = "'heb'"
+		isbn = ""
 	elif hold == 'cjk_art':
 		langs = "'chi','jpn','kor'"
 		locs = sa_locs + ',' + ues_loc
@@ -445,14 +446,14 @@ def ping_worldcat(hold):
 				with open(outfile,'ab+') as out:
 						writer = csv.writer(out)
 						writer.writerow(row)
-			elif hold == 'greek' and elvi != ' ':
+			elif (hold == 'greek' and elvi != ' ') or hold == 'hebrew':
 				# we want full report (member or not) with encoding level other than full #TODO refactor
 				with open(outfile,'ab+') as out:
 					writer = csv.writer(out)
 					writer.writerow(row)
 			else: 
 				# ...for all other holds, just report likely member copy...
-				if hold == 'latin':
+				if hold == 'latin' or hold == 'hebrew':
 				    try:
 					with open(outfile,'ab+') as out:
 					    writer = csv.writer(out)
