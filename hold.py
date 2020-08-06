@@ -109,7 +109,7 @@ def query_vger(hold, firstitem=0, lastitem=0):
 	cjk_locs = "'419','392'"
 	
 	if hold == 'roman':
-		langs = "'eng','fre','ger','ita','dut','rum','lat'"
+		langs = "'eng','fre','ger','ita','dut','rum','lat','spa','por','cat','pol','hun','cze','swe','nor','fin','dan'"
 	elif hold == 'latin':
 		langs = "'eng','fre','ger','ita','dut','rum','lat'"
 		locs = latin_locs
