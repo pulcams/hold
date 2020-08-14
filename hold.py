@@ -100,6 +100,7 @@ def query_vger(hold, firstitem=0, lastitem=0):
 	vendors = "" # ditto (the joins)
 	bib_format = ', BIB_TEXT.BIB_FORMAT'
 	format_cond = ''
+	subjects = ''
 	isbn = "AND REGEXP_REPLACE(BIB_TEXT.ISBN,'\s.*','') is not null" # only include null isbn for latin_american and hebrew
 	locs = "'6','7','13','20','21','22','24','46','84','96','138','140','142','144','163','165','171','195','197','204','214','217','221','229','250','281','287','372','419','444','446','448','450','468','492','523'"
 	sa_locs = "'123','129','423'"
@@ -107,6 +108,7 @@ def query_vger(hold, firstitem=0, lastitem=0):
 	dvd_loc = "'465'"
 	latin_locs = "'13','520'"
 	cjk_locs = "'419','392'"
+	recap_locs = "'419', '423'"
 	
 	if hold == 'roman':
 		langs = "'eng','fre','ger','ita','dut','rum','lat','spa','por','cat','pol','hun','cze','swe','nor','fin','dan'"
@@ -151,7 +153,12 @@ def query_vger(hold, firstitem=0, lastitem=0):
 		langs = "'zzz'" # this is fake; this is the only query for all languages
 		format_cond = "AND BIB_FORMAT like 'g%'"
 		locs = locs + "," + dvd_loc
-		
+	elif hold == 'recap':
+		lang_cond = 'NOT'
+		langs = "'zzz'"
+		locs = recap_locs
+		subjects = " AND princetondb.GETALLBIBTAG(BIB_MASTER.BIB_ID, '6xx',2) is not null"
+
 	if firstitem > 0 or lastitem > 0:
 		items = "AND ITEM_STATUS.ITEM_ID between '%s' and '%s'" % (firstitem,lastitem)
 	else:
@@ -176,13 +183,13 @@ def query_vger(hold, firstitem=0, lastitem=0):
 		LEFT JOIN ITEM_BARCODE ON ITEM.ITEM_ID = ITEM_BARCODE.ITEM_ID
 		WHERE 
 		ITEM_BARCODE.ITEM_ID IS NOT NULL
-		BIB_TEXT.LANGUAGE %s IN (%s) %s
+		AND BIB_TEXT.LANGUAGE %s IN (%s) %s
 		AND ITEM_STATUS_TYPE.ITEM_STATUS_TYPE ='22'
 		AND princetondb.GETBIBSUBFIELD(BIB_TEXT.BIB_ID, '902','a') is null
 		AND MFHD_MASTER.NORMALIZED_CALL_NO is null %s
 		AND BIB_MASTER.SUPPRESS_IN_OPAC = 'N'
-		AND LOCATION.LOCATION_ID in (%s) %s
-		ORDER BY BIB_TEXT.LANGUAGE, ITEM_STATUS.ITEM_ID""" % (place, vendor, bib_format, parens, vendors, lang_cond, langs, isbn, items, locs, format_cond)
+		AND LOCATION.LOCATION_ID in (%s) %s%s
+		ORDER BY BIB_TEXT.LANGUAGE, ITEM_STATUS.ITEM_ID""" % (place, vendor, bib_format, parens, vendors, lang_cond, langs, isbn, items, locs, format_cond, subjects)
 	print(query)
 	DSN = cx_Oracle.makedsn(HOST,PORT,SID)
 	oradb = cx_Oracle.connect(USER,PASS,DSN)
@@ -590,6 +597,7 @@ def make_html():
 	<p><a href="./data/roman.csv">Roman</a> <span id="spark_roman"></span></p>
 	<p><a href="./data/turkish.csv">Turkish</a> <span id="spark_tur"></span></p>
 	<p><a href="./data/dvd.csv">DVDs</a> <span id="spark_dvd"></span></p>
+	<p><a href="./data/recap.csv">ReCAP</a> <span id="spark_recap"></span></p>
 	<p><a href="https://docs.google.com/a/princeton.edu/forms/d/18SPb-XvSLPRxt5O2XIW4qhJpFivg9v_84wmu6B1RNUw/viewform" target="_BLANK">Custom report</a> (Google sign-in)</p>
 	<sub>Sparklines (<span id="spark_sample"></span>) indicate trends in these reports since 09/01/15. For the bigger picture, look under Stats.</sub>
 	</div>
@@ -669,6 +677,9 @@ d3.csv('./summaries/art.csv', function(error, data) {
 d3.csv('./summaries/hebrew.csv', function(error, data) {
   sparkline('#spark_heb', data);
 });
+d3.csv('./summaries/recap.csv', function(error, data) {
+  sparkline('#spark_recap', data);
+});
 d3.csv('./summaries/sample.csv', function(error, data) {
   sparkline('#spark_sample', data);
 });
@@ -696,7 +707,7 @@ if __name__ == "__main__":
 	#main('roman',query,ping)
 	
 	## loop through all holds
-	holds = ['arabic','cyrillic','greek','hebrew','persian','roman','turkish','cjk_art','art','dvd','latin_american','latin', 'cjk']
+	holds = ['arabic','cyrillic','greek','hebrew','persian','roman','turkish','cjk_art','art','dvd','latin_american','latin', 'cjk', 'recap']
 	#holds = ['latin_american']
 	#holds = ['latin']
 	
