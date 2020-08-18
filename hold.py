@@ -26,9 +26,6 @@ import time
 from datetime import date, datetime, timedelta
 from lxml import etree
 
-#TODO
-# check 050 and 090 for presence of 0-9
-
 #TODO?
 # add BOM or UnicodeWriter for opening in Excel
 # no items for tur?
@@ -157,7 +154,6 @@ def query_vger(hold, firstitem=0, lastitem=0):
 		lang_cond = 'NOT'
 		langs = "'zzz'"
 		locs = recap_locs
-		subjects = " AND princetondb.GETALLBIBTAG(BIB_MASTER.BIB_ID, '6xx',2) is not null"
 
 	if firstitem > 0 or lastitem > 0:
 		items = "AND ITEM_STATUS.ITEM_ID between '%s' and '%s'" % (firstitem,lastitem)
@@ -188,8 +184,8 @@ def query_vger(hold, firstitem=0, lastitem=0):
 		AND princetondb.GETBIBSUBFIELD(BIB_TEXT.BIB_ID, '902','a') is null
 		AND MFHD_MASTER.NORMALIZED_CALL_NO is null %s
 		AND BIB_MASTER.SUPPRESS_IN_OPAC = 'N'
-		AND LOCATION.LOCATION_ID in (%s) %s%s
-		ORDER BY BIB_TEXT.LANGUAGE, ITEM_STATUS.ITEM_ID""" % (place, vendor, bib_format, parens, vendors, lang_cond, langs, isbn, items, locs, format_cond, subjects)
+		AND LOCATION.LOCATION_ID in (%s) %s
+		ORDER BY BIB_TEXT.LANGUAGE, ITEM_STATUS.ITEM_ID""" % (place, vendor, bib_format, parens, vendors, lang_cond, langs, isbn, items, locs, format_cond)
 	print(query)
 	DSN = cx_Oracle.makedsn(HOST,PORT,SID)
 	oradb = cx_Oracle.connect(USER,PASS,DSN)
@@ -374,12 +370,13 @@ def ping_worldcat(hold):
 							field090_value = field090a_value + field090b_value
 
 							#Test call nos for 0-9
-							if len(field050_value) > 0:
-								if not re.search('[0-9]',field050_value[0],re.IGNORECASE):
-									field050 = False
-							if len(field090_value) > 0:
-								if not re.search('[0-9]',field090_value[0],re.IGNORECASE):
-									field090 = False
+							if hold != 'recap':
+								if len(field050_value) > 0:
+									if not re.search('[0-9]',field050_value[0],re.IGNORECASE):
+										field050 = False
+								if len(field090_value) > 0:
+									if not re.search('[0-9]',field090_value[0],re.IGNORECASE):
+										field090 = False
 
 							# lang of cataloging in 040$b
 							if len(field040b) == 0:
@@ -391,7 +388,10 @@ def ping_worldcat(hold):
 							if hold == 'dvd' and field6xx == True and field6xx_ind2 == True:
 								ismember = True
 								guess = 'member'
-							elif (field050 == True or field090 == True) and (field6xx == True or (lit != '0' and lit != ' ')) and (erec not in ['s','o']):
+							elif hold == 'recap' and ((field050 == False and field090 == False) and (field6xx == True and field6xx_ind2 == True)):
+								ismember = True
+								guess = 'member'
+							elif hold != 'recap' and ((field050 == True or field090 == True) and (field6xx == True or (lit != '0' and lit != ' ')) and (erec not in ['s','o'])):
 								ismember = True
 								guess = 'member'
 							else:
@@ -597,7 +597,7 @@ def make_html():
 	<p><a href="./data/roman.csv">Roman</a> <span id="spark_roman"></span></p>
 	<p><a href="./data/turkish.csv">Turkish</a> <span id="spark_tur"></span></p>
 	<p><a href="./data/dvd.csv">DVDs</a> <span id="spark_dvd"></span></p>
-	<p><a href="./data/recap.csv">ReCAP</a> <span id="spark_recap"></span></p>
+	<p><a href="./data/recap.csv">Callnum free ReCAP</a> <span id="spark_recap"></span></p>
 	<p><a href="https://docs.google.com/a/princeton.edu/forms/d/18SPb-XvSLPRxt5O2XIW4qhJpFivg9v_84wmu6B1RNUw/viewform" target="_BLANK">Custom report</a> (Google sign-in)</p>
 	<sub>Sparklines (<span id="spark_sample"></span>) indicate trends in these reports since 09/01/15. For the bigger picture, look under Stats.</sub>
 	</div>
@@ -707,9 +707,10 @@ if __name__ == "__main__":
 	#main('roman',query,ping)
 	
 	## loop through all holds
-	holds = ['arabic','cyrillic','greek','hebrew','persian','roman','turkish','cjk_art','art','dvd','latin_american','latin', 'cjk', 'recap']
+	#holds = ['recap','arabic','cyrillic','greek','hebrew','persian','roman','turkish','cjk_art','art','dvd','latin_american','latin', 'cjk']
 	#holds = ['latin_american']
 	#holds = ['latin']
+	holds = ['recap']
 	
 	for h in holds:
 		main(h, query, ping)
